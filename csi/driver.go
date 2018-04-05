@@ -2,9 +2,9 @@ package csi
 
 import (
     "github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
-    log "github.com/sirupsen/logrus"
     "github.com/container-storage-interface/spec/lib/go/csi/v0"
     "github.com/kubernetes-csi/drivers/pkg/csi-common"
+    log "github.com/sirupsen/logrus"
 )
 
 type driver struct {
@@ -35,7 +35,7 @@ func GetCSIDriver() *driver {
 
 /*NewDriver creates new nexentaedge csi driver with required capabilities */
 func NewDriver(nodeID, endpoint, nedgeconfig string) *driver {
-  log.Info("NewDriver: ", DriverName, " version:", version)
+    log.Info("NewDriver: ", DriverName, " version:", version)
 
     d := &driver{}
 
