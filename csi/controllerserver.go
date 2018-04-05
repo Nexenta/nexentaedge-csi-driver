@@ -2,7 +2,7 @@ package csi
 
 import (
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"github.com/pborman/uuid"

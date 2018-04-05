@@ -1,7 +1,7 @@
 package nexentaedge
 
 import (
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var configFile = "/etc/nexentaedge-csi.json"
