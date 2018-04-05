@@ -14,7 +14,7 @@ type controllerServer struct {
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-
+    log.Infof("CreateVolume req[%#v]", req)
     nedge, err := nexentaedge.GetNexentaEdgeProvider()
     if err != nil {
         log.Fatal("Failed to get NexentaEdgeProvider instance")
@@ -48,7 +48,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-
+    log.Infof("DeleteVolume req[%#v]", req)
     nedge, err := nexentaedge.GetNexentaEdgeProvider()
     if err != nil {
         log.Fatal("Failed to get NexentaEdgeProvider instance")
@@ -68,6 +68,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 }
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
+    log.Infof("ControllerPublishVolume req[%#v]", req)
 
     // Volume Attach
     instanceID := req.GetNodeId()
@@ -86,6 +87,7 @@ func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *cs
 
 func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 
+    log.Infof("ControllerUnpublishVolume req[%#v]", req)
     // Volume Detach
     instanceID := req.GetNodeId()
     volumeID := req.GetVolumeId()
@@ -96,7 +98,7 @@ func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 }
 
 func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-    log.Info("ControllerListVolumes ")
+    log.Infof("ControllerListVolumes req[%#v]", req)
     nedge, err := nexentaedge.GetNexentaEdgeProvider()
     if err != nil {
         log.Fatal("Failed to get NexentaEdgeProvider instance")

@@ -67,6 +67,7 @@ func ReadParseConfig(fname string) Config {
 
 /*GetNexentaEdgeProvider returns nedge provider instance*/
 func GetNexentaEdgeProvider() (INexentaEdge, error) {
+    log.Info("GetNexentaedgeProvider: ")
     if NexentaEdgeInstance == nil {
 
         conf := ReadParseConfig(configFile)

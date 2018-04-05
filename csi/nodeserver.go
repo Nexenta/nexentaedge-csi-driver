@@ -12,13 +12,14 @@ type nodeServer struct {
 }
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
+    log.Infof("NodeGetId req[%#v]", req)
     // Using default function
     log.Info("NodeGetId invoked")
     return ns.DefaultNodeServer.NodeGetId(ctx, req)
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-
+    log.Infof("NodePublishVolume req[%#v]", req)
     targetPath := req.GetTargetPath()
     fsType := req.GetVolumeCapability().GetMount().GetFsType()
     devicePath := req.GetPublishInfo()["DevicePath"]
@@ -28,7 +29,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 }
 
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-
+    log.Infof("NodeUnpublishVolume req[%#v]", req)
     targetPath := req.GetTargetPath()
     log.Info("NodeUnpublishVolume invoked: targetPath:", targetPath)
 
