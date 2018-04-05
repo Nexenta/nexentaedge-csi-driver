@@ -12,7 +12,7 @@ test:
 nfs:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/$(PLUGIN_BIN) ./app
 
-build-container: nfs
+build-container: nfs 
 	cp bin/$(PLUGIN_BIN) deploy/docker
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) deploy/docker
 
