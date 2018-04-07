@@ -11,7 +11,7 @@ import (
 
 func init() {
 	flag.Set("logtostderr", "true")
-}
+} 
 
 var (
 	endpoint    string

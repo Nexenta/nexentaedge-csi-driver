@@ -58,9 +58,12 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 }
 
 func (ns *nodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
-	return &csi.NodeUnstageVolumeResponse{}, nil
+	//return &csi.NodeUnstageVolumeResponse{}, nil
+
+	return nil, status.Error(codes.Unimplemented, "")
 }
 
 func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	return &csi.NodeStageVolumeResponse{}, nil
+	//return &csi.NodeStageVolumeResponse{}, nil
+	return nil, status.Error(codes.Unimplemented, "")
 }
