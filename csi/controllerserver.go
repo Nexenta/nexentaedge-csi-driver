@@ -17,6 +17,7 @@ type controllerServer struct {
 
 func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume map[string]string) {
 	volume.Id = nedgeVolume["volumeID"]
+	volume.Attributes = make(map[string]string)
 	volume.Attributes["share"] = nedgeVolume["share"]
 	volume.Attributes["cluster"] = nedgeVolume["cluster"]
 	volume.Attributes["tenant"] = nedgeVolume["tenant"]

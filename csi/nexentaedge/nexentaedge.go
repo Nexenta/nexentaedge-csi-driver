@@ -141,17 +141,20 @@ func (nedge *NexentaEdgeProvider) CreateVolume(name string, size int) (err error
 	tenantName := nedge.Config.Tenantname
 
 	log.Infof("NexentaEdgeProvider:CreateVolume for serviceName: %s, %s/%s/%s, size: %d", serviceName, clusterName, tenantName, name, size)
-	err = nedge.createBucket(clusterName, tenantName, name)
+	body, err := nedge.createBucket(clusterName, tenantName, name)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on createBucket error: %s", err)
 		return err
 	}
 
-	err = nedge.serveService(serviceName, clusterName, tenantName, name)
+	body, err = nedge.serveService(serviceName, clusterName, tenantName, name)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on serveService error: %s", err)
 		return err
 	}
+
+	// no usage of response body yet
+	_ = body
 
 	return err
 }
@@ -167,119 +170,113 @@ func (nedge *NexentaEdgeProvider) DeleteVolume(volumeNameOrID string) (err error
 	bucket := GetBucketFromVolumeID(volumeNameOrID)
 	log.Infof("NexentaEdgeProvider:DeleteVolume for serviceName: %s: %s/%s/%s", serviceName, clusterName, tenantName, bucket)
 
-	err = nedge.deleteBucket(clusterName, tenantName, bucket)
-	if err != nil {
-		err = fmt.Errorf("DeleteVolume failed on deleteBucket, error: %s", err)
-		return err
-	}
-
-	err = nedge.unserveService(serviceName, clusterName, tenantName, bucket)
+	body, err := nedge.unserveService(serviceName, clusterName, tenantName, bucket)
 	if err != nil {
 		err = fmt.Errorf("DeleteVolume failed on unserveService, error: %s", err)
 		return err
 	}
 
+	body, err = nedge.deleteBucket(clusterName, tenantName, bucket)
+	if err != nil {
+		err = fmt.Errorf("DeleteVolume failed on deleteBucket, error: %s", err)
+		return err
+	}
+
+	// no usage of response body yet
+	_ = body
+
 	return err
 }
 
-func (nedge *NexentaEdgeProvider) doBucketRequest(method string,
-	clusterName string,
-	tenantName string,
-	bucketName string,
-	data map[string]interface{}) (err error) {
+func (nedge *NexentaEdgeProvider) doNexentaEdgeRequest(method string, commandPath string, data map[string]interface{}) (body []byte, err error) {
 
-	url := fmt.Sprintf("clusters/%s/tenants/%s/buckets", clusterName, tenantName)
-
-	body, err := nedge.Request(method, url, data)
+	body, err = nedge.Request(method, commandPath, data)
 	resp := make(map[string]interface{})
 	jsonerr := json.Unmarshal(body, &resp)
 
 	if len(body) > 0 {
 		if jsonerr != nil {
-			log.Panic(jsonerr)
-			return err
+			log.Error("doNexentaEdgeRequest failed", jsonerr)
+			return body, fmt.Errorf("doNexentaEdgeRequest failed: %v", jsonerr)
 		}
+
 		if (resp["code"] != nil) && (resp["code"] != "RT_ERR_EXISTS") {
 			err = fmt.Errorf("Error while handling request: %s", resp)
-			log.Panic(err)
+			log.Errorf("Error: %v", err)
+			return body, err
 		}
+	} else {
+		err = fmt.Errorf("Empty response from NexentaEdge server: %s", resp)
+		log.Panic(err)
 	}
-	return err
+
+	return body, err
 }
 
 func (nedge *NexentaEdgeProvider) createBucket(
 	clusterName string,
 	tenantName string,
-	bucketName string) (err error) {
+	bucketName string) (response []byte, err error) {
+
+	path := fmt.Sprintf("clusters/%s/tenants/%s/buckets", clusterName, tenantName)
 
 	data := make(map[string]interface{})
 	data["bucketName"] = bucketName
 
-	return nedge.doBucketRequest("POST", clusterName, tenantName, bucketName, data)
+	return nedge.doNexentaEdgeRequest("POST", path, data)
 }
 
 func (nedge *NexentaEdgeProvider) deleteBucket(
 	clusterName string,
 	tenantName string,
-	bucketName string) (err error) {
+	bucketName string) (response []byte, err error) {
+
+	path := fmt.Sprintf("clusters/%s/tenants/%s/buckets/%s", clusterName, tenantName, bucketName)
 
 	data := make(map[string]interface{})
 	data["bucketName"] = bucketName
 
-	return nedge.doBucketRequest("DELETE", clusterName, tenantName, bucketName, data)
-}
-
-func (nedge *NexentaEdgeProvider) doServiceRequest(
-	method string,
-	serviceName string,
-	data map[string]interface{}) (err error) {
-
-	url := fmt.Sprintf("service/%s/serve", serviceName)
-	body, err := nedge.Request(method, url, data)
-	resp := make(map[string]interface{})
-	jsonerr := json.Unmarshal(body, &resp)
-	if len(body) > 0 {
-
-		if jsonerr != nil {
-			log.Error(jsonerr)
-			return err
-		}
-		if resp["code"] == "EINVAL" {
-			err = fmt.Errorf("Error while handling request: %s", resp)
-			return err
-		}
-	}
-
-	return err
+	return nedge.doNexentaEdgeRequest("DELETE", path, data)
 }
 
 func (nedge *NexentaEdgeProvider) serveService(
 	serviceName string,
 	clusterName string,
 	tenantName string,
-	bucketName string) (err error) {
+	bucketName string) (response []byte, err error) {
+
+	path := fmt.Sprintf("service/%s/serve", serviceName)
 
 	data := make(map[string]interface{})
 	data["serve"] = fmt.Sprintf("%s/%s/%s", clusterName, tenantName, bucketName)
-	return nedge.doServiceRequest("PUT", serviceName, data)
+
+	return nedge.doNexentaEdgeRequest("PUT", path, data)
 }
 
 func (nedge *NexentaEdgeProvider) unserveService(
 	serviceName string,
 	clusterName string,
 	tenantName string,
-	bucketName string) (err error) {
+	bucketName string) (response []byte, err error) {
+
+	path := fmt.Sprintf("service/%s/serve", serviceName)
 
 	data := make(map[string]interface{})
 	data["serve"] = fmt.Sprintf("%s/%s/%s", clusterName, tenantName, bucketName)
-	return nedge.doServiceRequest("DELETE", serviceName, data)
+
+	return nedge.doNexentaEdgeRequest("DELETE", path, data)
 }
 
 /*ListVolumes list all available volumes*/
-func (nedge *NexentaEdgeProvider) ListVolumes() (volumes []map[string]string, er error) {
+func (nedge *NexentaEdgeProvider) ListVolumes() (volumes []map[string]string, err error) {
 	log.Info("NexentaEdgeProvider ListVolumes: ")
 
-	serviceObjects := nedge.GetServiceObjects()
+	serviceObjects, err := nedge.GetServiceObjects()
+	if err != nil {
+		log.Error(err)
+		return nil, fmt.Errorf("ListVolumes failed. Error: %v", err)
+	}
+
 	prefix := fmt.Sprintf("%s/%s", nedge.Config.Clustername, nedge.Config.Tenantname)
 	for _, v := range serviceObjects {
 
@@ -304,25 +301,28 @@ func (nedge *NexentaEdgeProvider) ListVolumes() (volumes []map[string]string, er
 	return volumes, nil
 }
 
-func (nedge *NexentaEdgeProvider) GetServiceObjects() (objects []string) {
-	servicePath := fmt.Sprintf("service/%s", nedge.Config.Servicename)
-	body, err := nedge.Request("GET", servicePath, nil)
+func (nedge *NexentaEdgeProvider) GetServiceObjects() (objects []string, err error) {
 
-	response := make(map[string]map[string]map[string]interface{})
-	jsonerr := json.Unmarshal(body, &response)
-	if jsonerr != nil {
-		log.Error(jsonerr)
+	servicePath := fmt.Sprintf("service/%s", nedge.Config.Servicename)
+	body, err := nedge.doNexentaEdgeRequest("GET", servicePath, nil)
+	if err != nil {
+		log.Error(err)
+		return nil, err
 	}
 
-	if response["response"]["data"]["X-Service-Objects"] == nil {
-		return
+	responseMap := make(map[string]map[string]map[string]interface{})
+	jsonerr := json.Unmarshal(body, &responseMap)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+		return nil, fmt.Errorf("GetServiceObjects failed. Error: %v", err)
 	}
 
 	var exports []string
-	strList := response["response"]["data"]["X-Service-Objects"].(string)
-	err = json.Unmarshal([]byte(strList), &exports)
+	strList := responseMap["response"]["data"]["X-Service-Objects"].(string)
+	jsonerr = json.Unmarshal([]byte(strList), &exports)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
 
 	for _, v := range exports {
@@ -330,7 +330,7 @@ func (nedge *NexentaEdgeProvider) GetServiceObjects() (objects []string) {
 			objects = append(objects, v)
 		}
 	}
-	return objects
+	return objects, err
 }
 
 func (nedge *NexentaEdgeProvider) checkError(resp *http.Response) (err error) {
