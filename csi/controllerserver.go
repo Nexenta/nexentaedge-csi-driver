@@ -1,6 +1,8 @@
 package csi
 
 import (
+	"fmt"
+
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
@@ -42,7 +44,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		Volume: resultVolume,
 	}
 
-	nedgeVolume := nedge.GetVolumeByName(volumeName)
+	nedgeVolume := nedge.GetVolume(volumeName)
 	//volume already exists, returns
 	if nedgeVolume != nil {
 		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
@@ -62,7 +64,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	newNedgeVolume := nedge.GetVolumeByName(volumeName)
+	newNedgeVolume := nedge.GetVolume(volumeName)
 	if newNedgeVolume == nil {
 		log.Infof("Failed to get created volume by name, %v", err)
 		return nil, err
@@ -86,6 +88,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		return nil, status.Error(codes.InvalidArgument, "Volume id must be provided")
 	}
 
+	// If the volume is not found, then we can return OK
 	if nedge.IsVolumeExist(volumeID) == false {
 		log.Infof("DeleteVolume:IsVolumeExist volume %s does not exist", volumeID)
 		return &csi.DeleteVolumeResponse{}, nil
@@ -93,8 +96,11 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 
 	err = nedge.DeleteVolume(volumeID)
 	if err != nil {
-		log.Errorf("Failed to DeleteVolume: %s %v", volumeID, err)
-		return nil, err
+		e := fmt.Sprintf("Unable to delete volume with id %s: %s",
+			req.GetVolumeId(),
+			err.Error())
+		log.Errorln(e)
+		return nil, status.Error(codes.Internal, e)
 	}
 
 	return &csi.DeleteVolumeResponse{}, nil

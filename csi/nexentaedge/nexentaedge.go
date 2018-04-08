@@ -22,7 +22,8 @@ type INexentaEdge interface {
 	DeleteVolume(volumeID string) error
 	ListVolumes() ([]map[string]string, error)
 	IsVolumeExist(volumeID string) bool
-	GetVolumeByName(volumeName string) (volume map[string]string)
+	GetVolume(volumeName string) (volume map[string]string)
+	GetDataIP() string
 }
 
 type Config struct {
@@ -91,41 +92,38 @@ func GetNexentaEdgeProvider() (INexentaEdge, error) {
 	return NexentaEdgeInstance, nil
 }
 
+/*GetDataIP returns nfs endpoint IP to create share */
+func (nedge *NexentaEdgeProvider) GetDataIP() string {
+	return nedge.Config.Nedgedata
+}
+
 /*IsVolumeExist check volume existance, */
 func (nedge *NexentaEdgeProvider) IsVolumeExist(volumeNameOrID string) bool {
-	volumes, err := nedge.ListVolumes()
-	if err != nil {
-		log.Fatal("ListVolumes failed Error: ", err)
-	}
-
-	propertyToCompare := "bucket"
-	if isLikelyVolumeID(volumeNameOrID) {
-		propertyToCompare = "volumeID"
-	}
-
-	log.Info("IsVolumeExist:ListVolumes volumes", volumes)
-	for _, v := range volumes {
-
-		if volumeNameOrID == v[propertyToCompare] {
-			return true
-		}
+	volume := nedge.GetVolume(volumeNameOrID)
+	if volume != nil {
+		return true
 	}
 
 	return false
 }
 
-/*GetVolumeByName returns volume by volume name if it already exists, otherwise return nil*/
-func (nedge *NexentaEdgeProvider) GetVolumeByName(volumeName string) (volume map[string]string) {
+/*GetVolume returns volume by volume name/ID if it exists, otherwise return nil*/
+func (nedge *NexentaEdgeProvider) GetVolume(volumeNameOrID string) (volume map[string]string) {
 	volumes, err := nedge.ListVolumes()
 	if err != nil {
 		log.Fatal("ListVolumes failed Error: ", err)
 	}
 
 	log.Info("GetVolumeIDByName:ListVolumes volumes", volumes)
-	log.Info("Volume name to find: ", volumeName)
+	log.Info("Volume name to find: ", volumeNameOrID)
+
+	propertyToCompare := "bucket"
+	if isLikelyVolumeID(volumeNameOrID) {
+		propertyToCompare = "volumeID"
+	}
 	for _, v := range volumes {
 
-		if volumeName == v["bucket"] {
+		if volumeNameOrID == v[propertyToCompare] {
 			return v
 		}
 	}
