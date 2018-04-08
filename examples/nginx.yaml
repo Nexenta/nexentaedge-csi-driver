@@ -1,0 +1,54 @@
+# This YAML file contains nginx & csi cinder driver objects,
+# which are necessary to run nginx with nexentaedge csi nfs driver.
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-nedgeplugin
+  labels:
+    name: data-nedgeplugin
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  csi:
+    driver: nexentaedge-csi-plugin
+    volumeHandle: data-id
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-nedgeplugin
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchExpressions:
+    - key: name
+      operator: In
+      values: ["data-nedgeplugin"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx 
+spec:
+  containers:
+  - image: maersk/nginx
+    imagePullPolicy: Always
+    name: nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    volumeMounts:
+      - mountPath: /var/www
+        name: data-nedgeplugin 
+  volumes:
+  - name: data-nedgeplugin
+    persistentVolumeClaim:
+      claimName: data-nedgeplugin 
