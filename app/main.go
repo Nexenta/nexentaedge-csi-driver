@@ -11,7 +11,7 @@ import (
 
 func init() {
 	flag.Set("logtostderr", "true")
-} 
+}
 
 var (
 	endpoint    string
@@ -23,7 +23,7 @@ func main() {
 	flag.CommandLine.Parse([]string{})
 
 	cmd := &cobra.Command{
-		Use:   "NFS",
+		Use:   "nexentaedge-csi-plugin",
 		Short: "CSI based NexentaEdge NFS driver",
 		Run: func(cmd *cobra.Command, args []string) {
 			handle()
@@ -38,8 +38,8 @@ func main() {
 	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", "", "CSI endpoint")
 	cmd.MarkPersistentFlagRequired("endpoint")
 
-	cmd.PersistentFlags().StringVar(&nedgeconfig, "nedgeconfig", "", "NexentaEdge config file")
-	cmd.MarkPersistentFlagRequired("nedgeconfig")
+	cmd.PersistentFlags().StringVar(&nedgeconfig, "nedgeconfig", "/etc/nedgeconfig.json", "NexentaEdge config file")
+	//cmd.MarkPersistentFlagRequired("nedgeconfig")
 
 	cmd.ParseFlags(os.Args[1:])
 	if err := cmd.Execute(); err != nil {

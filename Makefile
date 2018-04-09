@@ -1,4 +1,4 @@
-IMAGE_NAME=nexenta/nexentaedge-csi-plugin
+IMAGE_NAME=antonskriptsov/nexentaedge-csi-plugin
 IMAGE_TAG=stable
 PLUGIN_BIN=nexentaedge-csi-plugin
 
@@ -13,9 +13,11 @@ nfs:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/$(PLUGIN_BIN) ./app
 
 build-container: nfs 
-	cp bin/$(PLUGIN_BIN) deploy/docker
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) deploy/docker
+	
+	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) Dockerfile .
 
+push-container: build-container
+	docker push $(IMAGE_NAME):$(IMAGE_TAG)
 clean:
 	go clean -r -x
 	-rm -rf bin

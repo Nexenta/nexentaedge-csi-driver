@@ -51,7 +51,10 @@ var configFile = "/etc/nexentaedge.json"
 
 /*InitNexentaEdgeProvider set up variables*/
 func InitNexentaEdgeProvider(config string) {
-	configFile = config
+	if len(config) != 0 {
+		configFile = config
+	}
+
 	log.Infof("InitNexentaEdgeProvider configFile: %s", configFile)
 }
 

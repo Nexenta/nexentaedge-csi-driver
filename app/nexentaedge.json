@@ -1,0 +1,11 @@
+{
+  "nedgerest":    "10.3.199.201",
+  "nedgeport":    8080,
+  "clustername":  "clu1",
+  "tenantname":   "ten1",
+  "mountpoint": "/var/lib/ndnfs",
+  "servicename": "anton",
+  "username": "admin",
+  "password": "nexenta",
+  "nedgedata": "20.20.20.223"
+}
