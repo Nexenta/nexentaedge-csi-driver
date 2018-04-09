@@ -38,7 +38,7 @@ func main() {
 	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", "", "CSI endpoint")
 	cmd.MarkPersistentFlagRequired("endpoint")
 
-	cmd.PersistentFlags().StringVar(&nedgeconfig, "nedgeconfig", "/etc/nedgeconfig.json", "NexentaEdge config file")
+	cmd.PersistentFlags().StringVar(&nedgeconfig, "nedgeconfig", "/etc/nexentaedge-config.json", "NexentaEdge config file")
 	//cmd.MarkPersistentFlagRequired("nedgeconfig")
 
 	cmd.ParseFlags(os.Args[1:])

@@ -14,7 +14,6 @@ import (
 )
 
 const defaultChunkSize int = 1048576
-const defaultMountPoint string = "/var/lib/ndnfs"
 
 /*INexentaEdge interface to provide base methods */
 type INexentaEdge interface {
@@ -36,7 +35,6 @@ type Config struct {
 	Chunksize   int
 	Username    string
 	Password    string
-	Mountpoint  string
 	Servicename string
 }
 
@@ -47,7 +45,7 @@ type NexentaEdgeProvider struct {
 }
 
 var NexentaEdgeInstance INexentaEdge = nil
-var configFile = "/etc/nexentaedge.json"
+var configFile = "/etc/nexentaedge-config.json"
 
 /*InitNexentaEdgeProvider set up variables*/
 func InitNexentaEdgeProvider(config string) {
@@ -79,9 +77,6 @@ func GetNexentaEdgeProvider() (INexentaEdge, error) {
 		conf := ReadParseConfig(configFile)
 		if conf.Chunksize == 0 {
 			conf.Chunksize = defaultChunkSize
-		}
-		if conf.Mountpoint == "" {
-			conf.Mountpoint = defaultMountPoint
 		}
 
 		log.Info("GetNexentaedgeProvider config: ", conf)
