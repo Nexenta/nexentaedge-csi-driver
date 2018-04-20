@@ -1,0 +1,16 @@
+package: github.com/Nexenta/nexentaedge-csi-driver
+import:
+- package: k8s.io/kubernetes
+  version: release-1.10
+- package: k8s.io/client-go
+  version: kubernetes-1.10.0
+- package: k8s.io/api
+  version: release-1.10
+- package: k8s.io/apimachinery
+  version: release-1.10
+- package: k8s.io/apiserver
+  version: release-1.10
+- package: github.com/spf13/cobra
+  version: f62e98d28ab7ad31d707ba837a966378465c7b57
+- package: github.com/spf13/pflag
+  version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
