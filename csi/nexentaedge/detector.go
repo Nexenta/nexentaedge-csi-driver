@@ -3,6 +3,7 @@ package nexentaedge
 import (
         "flag"
         "os"
+	"fmt"
         "path/filepath"
         "strings"
 
@@ -14,13 +15,14 @@ import (
 
 const (
 	K8S_NEDGE_NAMESPACE = "nedge"
+	K8S_NEDGE_MGMT_PREFIX = "nedge-mgmt"
 	K8S_NEDGE_NFS_PREFIX = "nedge-svc-nfs-"
 )
 
 type NedgeK8sCluster struct {
-	name string
-	clusterMgmtIP string
-	nfsServices map[string]string //map service name (w/o prefix):clusterIP - mount point
+	Name string
+	ClusterMgmtIP string
+	NfsServices map[string]string //map service name (w/o prefix):clusterIP - mount point
 }
 
 func homeDir() string {
@@ -33,6 +35,7 @@ func homeDir() string {
 /* TODO should be expanded to multiple clusters */
 func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 	var kubeconfig *string
+	//fmt.Println("GetNedgeCluster: ")
         if home := homeDir(); home != "" {
                 kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
         }
@@ -53,22 +56,27 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
         }
 
 	svcs, err := clientset.CoreV1().Services(K8S_NEDGE_NAMESPACE).List(metav1.ListOptions{})
+	//fmt.Printf("SVCS: %+v\n", svcs)
         if err != nil {
+		fmt.Errorf("Error: %v\n", err)
                 return cluster, err
         }
 
+	cluster.NfsServices = make(map[string]string)
         for _, svc := range svcs.Items {
+		//fmt.Printf("Item: %+v\n", svc)
                 serviceName := svc.GetName()
                 serviceClusterIP := svc.Spec.ClusterIP
-                if serviceName == K8S_NEDGE_NAMESPACE {
-                        cluster.name = serviceName
-			cluster.clusterMgmtIP = serviceClusterIP
+		
+                if strings.HasPrefix(serviceName, K8S_NEDGE_MGMT_PREFIX) {
+                        cluster.Name = serviceName
+			cluster.ClusterMgmtIP = serviceClusterIP
                         continue
                 }
 
-                if strings.HasPrefix(K8S_NEDGE_NFS_PREFIX, serviceName) {
-                        nfsSvcName := strings.TrimPrefix(K8S_NEDGE_NFS_PREFIX, serviceName)
-			cluster.nfsServices[nfsSvcName] = serviceClusterIP
+                if strings.HasPrefix(serviceName, K8S_NEDGE_NFS_PREFIX) {
+                        nfsSvcName := strings.TrimPrefix(serviceName, K8S_NEDGE_NFS_PREFIX)
+			cluster.NfsServices[nfsSvcName] = serviceClusterIP
                 }
 	        //        fmt.Printf("Service: %s ClusterIP: %s \n", svc.GetName(), svc.Spec.ClusterIP)
         }
