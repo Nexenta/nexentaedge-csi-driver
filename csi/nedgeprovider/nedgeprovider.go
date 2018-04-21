@@ -26,6 +26,10 @@ type NedgeNFSVolume struct {
 
 /*INexentaEdge interface to provide base methods */
 type INexentaEdge interface {
+	ListClusters() (clusters []string, err error)
+	ListTenants(cluster string) (tenants []string, err error)
+	ListBuckets(cluster string, tenant string) (buckets []string, err error)
+	IsBucketExist(cluster string, tenant string, bucket string) bool
 	CreateBucket(cluster string, tenant string, bucket string, size int, options map[string]string) error
 	DeleteBucket(cluster string, tenant string, bucket string) error
 	ServeService(service string, cluster string, tenant string, bucket string) (err error)
@@ -40,7 +44,7 @@ type NexentaEdgeProvider struct {
 	auth     string
 }
 
-var nexentaEdgeProviderInstance INexentaEdge = nil
+var nexentaEdgeProviderInstance INexentaEdge
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdge {
 	log.Info("GetNexentaEdgeProvider: ")
@@ -166,6 +170,91 @@ func (nedge *NexentaEdgeProvider) GetService(service string) (body []byte, err e
 	return nedge.doNedgeRequest("GET", path, nil)
 }
 
+func (nedge *NexentaEdgeProvider) IsBucketExist(cluster string, tenant string, bucket string) bool {
+	log.Debugf("Check bucket existance for %s/%s/%s", cluster, tenant, bucket)
+	buckets, err := nedge.ListBuckets(cluster, tenant)
+	if err != nil {
+		return false
+	}
+
+	for _, value := range buckets {
+		if bucket == value {
+			log.Debugf("Bucket %s/%s/%s already exist", cluster, tenant, bucket)
+			return true
+		}
+	}
+	log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
+	return false
+}
+
+func (nedge *NexentaEdgeProvider) ListBuckets(cluster string, tenant string) (buckets []string, err error) {
+	url := fmt.Sprintf("clusters/%s/tenants/%s/buckets", cluster, tenant)
+	body, err := nedge.doNedgeRequest("GET", url, nil)
+
+	r := make(map[string]interface{})
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+	}
+	if r["response"] == nil {
+		log.Debugf("No buckets found for %s/%s", cluster, tenant)
+		return buckets, err
+	}
+
+	for _, val := range r["response"].([]interface{}) {
+		buckets = append(buckets, val.(string))
+	}
+
+	log.Debugf("Bucket list for %s/%s : %+v", cluster, tenant, buckets)
+	return buckets, err
+}
+
+func (nedge *NexentaEdgeProvider) ListClusters() (clusters []string, err error) {
+	url := "clusters"
+	body, err := nedge.doNedgeRequest("GET", url, nil)
+
+	r := make(map[string]interface{})
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+	}
+
+	if r["response"] == nil {
+		log.Debugf("No clusters found for NexentaEdge cluster %s", nedge.endpoint)
+		return clusters, err
+	}
+
+	for _, val := range r["response"].([]interface{}) {
+		clusters = append(clusters, val.(string))
+	}
+
+	log.Debugf("Cluster list for NexentaEdge cluster %s", nedge.endpoint)
+	return clusters, err
+}
+
+func (nedge *NexentaEdgeProvider) ListTenants(cluster string) (tenants []string, err error) {
+	url := fmt.Sprintf("clusters/%s/tenants", cluster)
+	body, err := nedge.doNedgeRequest("GET", url, nil)
+
+	r := make(map[string]interface{})
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+	}
+
+	if r["response"] == nil {
+		log.Debugf("No tenants for %s cluster found ", cluster)
+		return tenants, err
+	}
+
+	for _, val := range r["response"].([]interface{}) {
+		tenants = append(tenants, val.(string))
+	}
+
+	log.Debugf("Tenant list for cluster %s", cluster)
+	return tenants, err
+}
+
 func (nedge *NexentaEdgeProvider) GetNfsVolumes(service string) (volumes []NedgeNFSVolume, err error) {
 
 	body, err := nedge.GetService(service)
@@ -286,4 +375,3 @@ func (nedge *NexentaEdgeProvider) checkError(resp *http.Response) (err error) {
 func isPowerOfTwo(x int) (res bool) {
 	return (x != 0) && ((x & (x - 1)) == 0)
 }
-
