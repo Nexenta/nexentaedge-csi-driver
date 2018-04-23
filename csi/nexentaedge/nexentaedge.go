@@ -18,7 +18,7 @@ type INexentaEdge interface {
 	DeleteVolume(volumeID string) error
 	ListVolumes() ([]nedgeprovider.NedgeNFSVolume, error)
 	IsVolumeExist(volumeID string) bool
-	GetVolume(volumeName string) (volume *nedgeprovider.NedgeNFSVolume)
+	GetVolume(volumeName string) (volume *nedgeprovider.NedgeNFSVolume, err error)
 	GetVolumeID(volumeName string) (volumeID string, err error)
 	GetDataIP() string
 }
@@ -78,7 +78,7 @@ func (nedge *NexentaEdge) IsVolumeExist(volumeID string) bool {
 		// get first service from list, should be changed later
 
 		if nedge.provider.IsBucketExist(cluster, tenant, bucket) {
-			volume := nedge.GetVolume(volumeID)
+			volume, _ := nedge.GetVolume(volumeID)
 			if volume != nil {
 				return true
 			}
@@ -125,13 +125,14 @@ func (nedge *NexentaEdge) GetVolumeID(name string) (volumeID string, err error) 
 }
 
 /*GetVolume returns NedgeNFSVolume if it exists, otherwise return nil*/
-func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume) {
+func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error) {
 	// get first service from list, should be changed later
 	service := nedge.k8sCluster.NfsServices[0]
 
 	volumes, err := nedge.provider.GetNfsVolumes(service.Name)
 	if err != nil {
 		log.Fatal("ListVolumes failed Error: ", err)
+		return nil, err
 	}
 
 	log.Info("GetVolume:ListVolumes volumes", volumes)
@@ -140,11 +141,11 @@ func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.Nedg
 	for _, v := range volumes {
 
 		if volumeID == v.VolumeID {
-			return &v
+			return &v, err
 		}
 	}
 
-	return nil
+	return nil, err
 }
 
 /*CreateVolume remotely creates bucket on nexentaedge service*/
