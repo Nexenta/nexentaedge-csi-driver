@@ -10,6 +10,7 @@ import (
 	//"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -17,6 +18,7 @@ const (
 	K8sNedgeNamespace  = "nedge"
 	K8sNedgeMgmtPrefix = "nedge-mgmt"
 	K8sNedgeNfsPrefix  = "nedge-svc-nfs-"
+	k8sClientInCluster = false
 )
 
 type NedgeK8sService struct {
@@ -40,19 +42,24 @@ func homeDir() string {
 /* TODO should be expanded to multiple clusters */
 func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 	var kubeconfig string
-	//fmt.Println("GetNedgeCluster: ")
-	if home := homeDir(); home != "" {
-		//kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
+	var config *rest.Config
+	if k8sClientInCluster == true {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		if home := homeDir(); home != "" {
+			kubeconfig = filepath.Join(home, ".kube", "config")
+		}
 
-	flag.Parse()
+		flag.Parse()
 
-	// use the current context in kubeconfig
-
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		return cluster, err
+		// use the current context in kubeconfig
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return cluster, err
+		}
 	}
 
 	// create the clientset
@@ -84,7 +91,6 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 			nfsSvcName := strings.TrimPrefix(serviceName, K8sNedgeNfsPrefix)
 			cluster.NfsServices = append(cluster.NfsServices, NedgeK8sService{Name: nfsSvcName, ClusterIP: serviceClusterIP})
 		}
-		//        fmt.Printf("Service: %s ClusterIP: %s \n", svc.GetName(), svc.Spec.ClusterIP)
 	}
 
 	return cluster, err
