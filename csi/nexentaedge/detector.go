@@ -39,17 +39,18 @@ func homeDir() string {
 
 /* TODO should be expanded to multiple clusters */
 func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
-	var kubeconfig *string
+	var kubeconfig string
 	//fmt.Println("GetNedgeCluster: ")
 	if home := homeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		//kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
 
 	flag.Parse()
 
 	// use the current context in kubeconfig
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return cluster, err
 	}
