@@ -290,7 +290,7 @@ func (nedge *NexentaEdgeProvider) GetNfsVolumes(service string) (volumes []Nedge
 
 			parts := strings.Split(objectParts[1], "@")
 			if len(parts) > 1 {
-				volume := NedgeNFSVolume{VolumeID: v, Share: parts[0], Path: parts[1]}
+				volume := NedgeNFSVolume{VolumeID: parts[1], Share: parts[0], Path: parts[1]}
 				volumes = append(volumes, volume)
 			}
 		}
