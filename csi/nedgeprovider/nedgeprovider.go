@@ -25,7 +25,7 @@ type NedgeNFSVolume struct {
 }
 
 /*INexentaEdge interface to provide base methods */
-type INexentaEdge interface {
+type INexentaEdgeProvider interface {
 	ListClusters() (clusters []string, err error)
 	ListTenants(cluster string) (tenants []string, err error)
 	ListBuckets(cluster string, tenant string) (buckets []string, err error)
@@ -44,9 +44,9 @@ type NexentaEdgeProvider struct {
 	auth     string
 }
 
-var nexentaEdgeProviderInstance INexentaEdge
+var nexentaEdgeProviderInstance INexentaEdgeProvider
 
-func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdge {
+func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.Info("GetNexentaEdgeProvider: ")
 	if nexentaEdgeProviderInstance == nil {
 		log.Info("InitNexentaEdgeProvider initialization")

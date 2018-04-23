@@ -2,6 +2,9 @@ package csi
 
 import (
 	"fmt"
+	"strings"
+
+	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -17,20 +20,22 @@ type controllerServer struct {
 	*csicommon.DefaultControllerServer
 }
 
-func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume map[string]string) {
-	volume.Id = nedgeVolume["volumeID"]
+func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume *nedgeprovider.NedgeNFSVolume) {
+	volume.Id = nedgeVolume.VolumeID
 	volume.Attributes = make(map[string]string)
-	volume.Attributes["share"] = nedgeVolume["share"]
-	volume.Attributes["cluster"] = nedgeVolume["cluster"]
-	volume.Attributes["tenant"] = nedgeVolume["tenant"]
-	volume.Attributes["bucket"] = nedgeVolume["bucket"]
+	volume.Attributes["share"] = nedgeVolume.Share
+	parts := strings.Split(nedgeVolume.Path, "/")
+	volume.Attributes["cluster"] = parts[0]
+	volume.Attributes["tenant"] = parts[1]
+	volume.Attributes["bucket"] = parts[2]
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	log.Infof("CreateVolume req[%#v]", req)
-	nedge, err := nexentaedge.GetNexentaEdgeProvider()
+	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
-		log.Fatal("Failed to get NexentaEdgeProvider instance")
+		log.Fatal("Failed to get NexentaEdge instance")
+		return nil, err
 	}
 	// Volume Name
 	volumeName := req.GetName()
@@ -44,7 +49,13 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		Volume: resultVolume,
 	}
 
-	nedgeVolume := nedge.GetVolume(volumeName)
+	volumeID, err := nedge.GetVolumeID(volumeName)
+	if err != nil {
+		log.Infof("Failed to GetVolumeID(%s): %v", volumeID, err)
+		return nil, err
+	}
+
+	nedgeVolume := nedge.GetVolume(volumeID)
 	//volume already exists, returns
 	if nedgeVolume != nil {
 		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
@@ -57,14 +68,14 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	//tenant := req.GetParameters()["tenant"]
 
 	// Volume Create
-	log.Info("Creating volume: ", volumeName)
-	err = nedge.CreateVolume(volumeName, 100)
+	log.Info("Creating volume: ", volumeID)
+	err = nedge.CreateVolume(volumeID, 100)
 	if err != nil {
 		log.Infof("Failed to CreateVolume: %v", err)
 		return nil, err
 	}
 
-	newNedgeVolume := nedge.GetVolume(volumeName)
+	newNedgeVolume := nedge.GetVolume(volumeID)
 	if newNedgeVolume == nil {
 		log.Infof("Failed to get created volume by name, %v", err)
 		return nil, err
@@ -77,9 +88,10 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
 	log.Infof("DeleteVolume req[%#v]", req)
-	nedge, err := nexentaedge.GetNexentaEdgeProvider()
+	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
-		log.Fatalf("Failed to get NexentaEdgeProvider instance %v", err)
+		log.Fatal("Failed to get NexentaEdge instance")
+		return nil, err
 	}
 
 	// VolumeID
@@ -131,9 +143,10 @@ func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 
 func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	log.Infof("ControllerListVolumes req[%#v]", req)
-	nedge, err := nexentaedge.GetNexentaEdgeProvider()
+	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
-		log.Fatal("Failed to get NexentaEdgeProvider instance")
+		log.Fatal("Failed to get NexentaEdge instance")
+		return nil, err
 	}
 
 	volumes, err := nedge.ListVolumes()
@@ -145,7 +158,7 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 		entries[i] = &csi.ListVolumesResponse_Entry{
 			Volume: &csi.Volume{},
 		}
-		nedgeVolumeToCSIVolume(entries[i].Volume, v)
+		nedgeVolumeToCSIVolume(entries[i].Volume, &v)
 	}
 
 	return &csi.ListVolumesResponse{

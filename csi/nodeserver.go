@@ -29,6 +29,11 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	log.Infof("NodePublishVolume req[%#v]", req)
+	nedge, err := nexentaedge.InitNexentaEdge()
+	if err != nil {
+		log.Fatal("Failed to get NexentaEdge instance")
+		return nil, err
+	}
 
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
@@ -38,11 +43,6 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 	if len(targetPath) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Target path must be provided")
-	}
-
-	nedge, err := nexentaedge.GetNexentaEdgeProvider()
-	if err != nil {
-		log.Fatalf("Failed to get NexentaEdgeProvider instance %v", err)
 	}
 
 	nedgeVolume := nedge.GetVolume(volumeID)
@@ -68,7 +68,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	source := fmt.Sprintf("%s:%s", nedge.GetDataIP(), nedgeVolume["share"])
+	source := fmt.Sprintf("%s:%s", nedge.GetDataIP(), nedgeVolume.Share)
 	log.Infof("NexentaEdge exports %s as %s", volumeID, source)
 
 	err = mounter.Mount(source, targetPath, "nfs", nil)

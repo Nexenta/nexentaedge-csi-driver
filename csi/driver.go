@@ -1,7 +1,6 @@
 package csi
 
 import (
-	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/kubernetes-csi/drivers/pkg/csi-common"
 	log "github.com/sirupsen/logrus"
@@ -71,6 +70,5 @@ func NewNodeServer(d *driver) *nodeServer {
 }
 
 func (d *driver) Run() {
-	nexentaedge.InitNexentaEdgeProvider(d.nedgeconfig)
 	csicommon.RunControllerandNodePublishServer(d.endpoint, d.csiDriver, NewControllerServer(d), NewNodeServer(d))
 }

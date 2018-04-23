@@ -29,6 +29,7 @@ type NedgeK8sCluster struct {
 	NfsServices  []NedgeK8sService
 }
 
+// Should be deleted in "In-Cluster" build
 func homeDir() string {
 	if h := os.Getenv("HOME"); h != "" {
 		return h
