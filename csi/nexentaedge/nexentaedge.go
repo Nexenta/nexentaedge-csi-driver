@@ -134,7 +134,7 @@ func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.Nedg
 		log.Fatal("ListVolumes failed Error: ", err)
 	}
 
-	log.Info("GetVolumeIDByName:ListVolumes volumes", volumes)
+	log.Info("GetVolume:ListVolumes volumes", volumes)
 	log.Info("Volume name to find: ", volumeID)
 
 	for _, v := range volumes {
@@ -158,14 +158,14 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int) (err error) {
 
 	cluster, tenant, bucket := parseVolumeID(name)
 
-	log.Infof("NexentaEdgeProvider:CreateVolume for serviceName: %s, %s/%s/%s, size: %d", service, cluster, tenant, name, size)
+	log.Infof("NexentaEdgeProvider:CreateVolume for serviceName: %s, %s/%s/%s, size: %d", service.Name, cluster, tenant, bucket, size)
 	err = nedge.provider.CreateBucket(cluster, tenant, bucket, 100, nil)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on createBucket error: %s", err)
 		return err
 	}
 
-	err = nedge.provider.ServeService(service.Name, cluster, tenant, name)
+	err = nedge.provider.ServeService(service.Name, cluster, tenant, bucket)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on serveService error: %s", err)
 		return err
