@@ -7,9 +7,8 @@ import (
 )
 
 type driver struct {
-	csiDriver   *csicommon.CSIDriver
-	endpoint    string
-	nedgeconfig string
+	csiDriver *csicommon.CSIDriver
+	endpoint  string
 
 	ids *csicommon.DefaultIdentityServer
 	cs  *controllerServer
@@ -33,13 +32,12 @@ func GetCSIDriver() *driver {
 }
 
 /*NewDriver creates new nexentaedge csi driver with required capabilities */
-func NewDriver(nodeID, endpoint, nedgeconfig string) *driver {
+func NewDriver(nodeID string, endpoint string) *driver {
 	log.Info("NewDriver: ", DriverName, " version:", version)
 
 	d := &driver{}
 
 	d.endpoint = endpoint
-	d.nedgeconfig = nedgeconfig
 
 	csiDriver := csicommon.NewCSIDriver(DriverName, version, nodeID)
 	csiDriver.AddControllerServiceCapabilities(
