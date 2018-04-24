@@ -38,11 +38,10 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: <nexenta-csi-plugin image>
+          image: 10.3.30.75:5000/nexentaedge-csi-plugin:latest
           args :
             - "--nodeid=$(NODE_ID)"
             - "--endpoint=$(CSI_ENDPOINT)"
-            - "--nedgeconfig=$(NEDGE_CONFIG)"
           env:
             - name: NODE_ID
               valueFrom:
@@ -50,8 +49,6 @@ spec:
                   fieldPath: spec.nodeName
             - name: CSI_ENDPOINT
               value: unix://plugin/csi.sock
-            - name: NEDGE_CONFIG
-              value: /etc/nexentaedge.json
           imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: plugin-dir
