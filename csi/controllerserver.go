@@ -143,6 +143,7 @@ func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 
 func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
 	log.Infof("ControllerListVolumes req[%#v]", req)
+
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
@@ -160,6 +161,8 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 		}
 		nedgeVolumeToCSIVolume(entries[i].Volume, &v)
 	}
+
+	//entries := make([]*csi.ListVolumesResponse_Entry, 0)
 
 	return &csi.ListVolumesResponse{
 		Entries: entries,

@@ -1,12 +1,11 @@
 package nexentaedge
 
 import (
-	"flag"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	//"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -52,9 +51,6 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 		if home := homeDir(); home != "" {
 			kubeconfig = filepath.Join(home, ".kube", "config")
 		}
-
-		flag.Parse()
-
 		// use the current context in kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
@@ -69,15 +65,16 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 	}
 
 	svcs, err := clientset.CoreV1().Services(K8sNedgeNamespace).List(metav1.ListOptions{})
-	//fmt.Printf("SVCS: %+v\n", svcs)
+	//log.Infof("SVCS: %+v\n", svcs)
 	if err != nil {
-		fmt.Errorf("Error: %v\n", err)
+		log.Errorf("Error: %v\n", err)
 		return cluster, err
 	}
 
 	//cluster.NfsServices = make(map[string]string)
 	for _, svc := range svcs.Items {
-		//fmt.Printf("Item: %+v\n", svc)
+		//log.Infof("Item: %+v\n", svc)
+
 		serviceName := svc.GetName()
 		serviceClusterIP := svc.Spec.ClusterIP
 
