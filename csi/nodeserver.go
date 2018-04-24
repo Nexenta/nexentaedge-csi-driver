@@ -45,7 +45,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Target path must be provided")
 	}
 
-	nedgeVolume := nedge.GetVolume(volumeID)
+	nedgeVolume, err := nedge.GetVolume(volumeID)
 	if nedgeVolume == nil {
 		log.Infof("No %s volume found for volumeID: %s ", volumeID)
 		return nil, status.Errorf(codes.NotFound, "Volume id %s not found", volumeID)

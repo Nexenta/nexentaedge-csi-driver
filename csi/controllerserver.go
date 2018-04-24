@@ -55,7 +55,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	nedgeVolume := nedge.GetVolume(volumeID)
+	nedgeVolume, err := nedge.GetVolume(volumeID)
 	//volume already exists, returns
 	if nedgeVolume != nil {
 		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
@@ -75,7 +75,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	newNedgeVolume := nedge.GetVolume(volumeID)
+	newNedgeVolume, err := nedge.GetVolume(volumeID)
 	if newNedgeVolume == nil {
 		log.Infof("Failed to get created volume by name, %v", err)
 		return nil, err
