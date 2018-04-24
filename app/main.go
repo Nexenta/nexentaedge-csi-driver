@@ -16,7 +16,6 @@ func init() {
 var (
 	endpoint    string
 	nodeID      string
-	nedgeconfig string
 )
 
 func main() {
@@ -38,9 +37,6 @@ func main() {
 	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", "", "CSI endpoint")
 	cmd.MarkPersistentFlagRequired("endpoint")
 
-	cmd.PersistentFlags().StringVar(&nedgeconfig, "nedgeconfig", "/etc/nexentaedge-config.json", "NexentaEdge config file")
-	//cmd.MarkPersistentFlagRequired("nedgeconfig")
-
 	cmd.ParseFlags(os.Args[1:])
 	if err := cmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%s", err.Error())
@@ -51,6 +47,6 @@ func main() {
 }
 
 func handle() {
-	driver := csi.NewDriver(nodeID, endpoint, nedgeconfig)
+	driver := csi.NewDriver(nodeID, endpoint)
 	driver.Run()
 }
