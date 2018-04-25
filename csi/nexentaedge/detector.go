@@ -17,7 +17,7 @@ const (
 	K8sNedgeNamespace  = "nedge"
 	K8sNedgeMgmtPrefix = "nedge-mgmt"
 	K8sNedgeNfsPrefix  = "nedge-svc-nfs-"
-	k8sClientInCluster = false
+	k8sClientInCluster = true
 )
 
 type NedgeK8sService struct {
