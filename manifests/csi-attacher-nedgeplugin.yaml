@@ -43,7 +43,7 @@ spec:
               mountPath: /var/lib/csi/sockets/pluginproxy/
 
         - name: nfs
-          image: quay.io/k8scsi/nfsplugin:v0.2.0
+          image: 10.3.30.75:5000/nexentaedge-csi-plugin:latest
           args :
             - "--nodeid=$(NODE_ID)"
             - "--endpoint=$(CSI_ENDPOINT)"
