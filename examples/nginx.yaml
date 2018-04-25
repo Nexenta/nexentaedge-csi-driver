@@ -4,39 +4,41 @@
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: data-nedgeplugin
+  name: csi-nedge-pv
   labels:
-    name: data-nedgeplugin
+    name: csi-nedge-pv
 spec:
   accessModes:
   - ReadWriteMany
   capacity:
-    storage: 100Gi
+    storage: 1Gi
   csi:
     driver: nexentaedge-csi-plugin
-    volumeHandle: data-id
+    volumeHandle: cltest/demo/testBucket
+    volumeAttributes:
+      service: nfssvc
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: data-nedgeplugin
+  name: csi-nedge-pvc
 spec:
   accessModes:
   - ReadWriteMany
   resources:
     requests:
-      storage: 100Gi
+      storage: 1Gi
   selector:
     matchExpressions:
     - key: name
       operator: In
-      values: ["data-nedgeplugin"]
+      values: ["csi-nedge-pvc"]
 ---
 apiVersion: v1
 kind: Pod
 metadata:
-  name: nginx 
+  name: nginx
 spec:
   containers:
   - image: maersk/nginx
@@ -47,8 +49,8 @@ spec:
       protocol: TCP
     volumeMounts:
       - mountPath: /var/www
-        name: data-nedgeplugin 
+        name: csi-volume
   volumes:
-  - name: data-nedgeplugin
+  - name: csi-volume
     persistentVolumeClaim:
-      claimName: data-nedgeplugin 
+      claimName: csi-nedge-pvc
