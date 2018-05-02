@@ -40,6 +40,7 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	log.Info("InitNexentaEdgeProvider")
 
 	k8sCluster, err = GetNedgeCluster()
+	log.Info("k8s Cluster: %+v", k8sCluster)
 	if err != nil {
 		msg := fmt.Sprintf("Can't get NexentaEdge k8s cluster instance, Error: %s", err.Error)
 		log.Error(msg)

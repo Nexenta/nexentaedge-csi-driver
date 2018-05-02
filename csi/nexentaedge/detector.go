@@ -85,12 +85,14 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 
 	//check config file exists
 	if IsConfigFileExists() {
+		log.Infof("Config file %s found", nedgeConfigFile)
 		config, err := ReadParseConfig()
 		if err != nil {
 			err = fmt.Errorf("Error reading config file %s error: \n", nedgeConfigFile, err.Error)
 			return cluster, err
 		}
 
+		log.Infof("StandAloneClusterConfig: %+v ", config)
 		cluster = NedgeK8sCluster{Cluster: config, NfsServices: make([]NedgeK8sService, 0)}
 		cluster.isStandAloneCluster = true
 
