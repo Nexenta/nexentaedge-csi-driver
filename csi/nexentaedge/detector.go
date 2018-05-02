@@ -1,6 +1,9 @@
 package nexentaedge
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +17,7 @@ import (
 )
 
 const (
+	nedgeConfigFile    = "/config/cluster-config.json"
 	K8sNedgeNamespace  = "nedge"
 	K8sNedgeMgmtPrefix = "nedge-mgmt"
 	K8sNedgeNfsPrefix  = "nedge-svc-nfs-"
@@ -26,8 +30,46 @@ type NedgeK8sService struct {
 }
 
 type NedgeK8sCluster struct {
-	NedgeMgmtSvc NedgeK8sService
-	NfsServices  []NedgeK8sService
+	Cluster             NedgeClusterConfig
+	isStandAloneCluster bool
+	NfsServices         []NedgeK8sService
+}
+
+type NedgeClusterConfig struct {
+	Name     string
+	Address  string
+	Port     string
+	User     string
+	Password string
+}
+
+func (cluster *NedgeK8sCluster) IsStandAloneCluster() bool {
+	return cluster.isStandAloneCluster
+}
+
+func IsConfigFileExists() bool {
+	if _, err := os.Stat(nedgeConfigFile); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func ReadParseConfig() (config NedgeClusterConfig, err error) {
+	content, err := ioutil.ReadFile(nedgeConfigFile)
+	if err != nil {
+		err = fmt.Errorf("Error reading config file: %s error: %s\n", nedgeConfigFile, err)
+		log.Error(err.Error)
+		return config, err
+	}
+
+	err = json.Unmarshal(content, &config)
+	if err != nil {
+		err = fmt.Errorf("Error parsing config file: %s error: %s\n", nedgeConfigFile, err)
+		log.Error(err.Error)
+		return config, err
+	}
+
+	return config, nil
 }
 
 // Should be deleted in "In-Cluster" build
@@ -40,6 +82,27 @@ func homeDir() string {
 
 /* TODO should be expanded to multiple clusters */
 func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
+
+	//check config file exists
+	if IsConfigFileExists() {
+		config, err := ReadParseConfig()
+		if err != nil {
+			err = fmt.Errorf("Error reading config file %s error: \n", nedgeConfigFile, err.Error)
+			return cluster, err
+		}
+
+		cluster = NedgeK8sCluster{Cluster: config, NfsServices: make([]NedgeK8sService, 0)}
+		cluster.isStandAloneCluster = true
+
+	} else {
+		cluster, err = DetectNedgeK8sCluster()
+		cluster.isStandAloneCluster = false
+	}
+
+	return cluster, err
+}
+
+func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
 	var kubeconfig string
 	var config *rest.Config
 	if k8sClientInCluster == true {
@@ -71,7 +134,6 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 		return cluster, err
 	}
 
-	//cluster.NfsServices = make(map[string]string)
 	for _, svc := range svcs.Items {
 		//log.Infof("Item: %+v\n", svc)
 
@@ -79,8 +141,11 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 		serviceClusterIP := svc.Spec.ClusterIP
 
 		if strings.HasPrefix(serviceName, K8sNedgeMgmtPrefix) {
-			cluster.NedgeMgmtSvc.Name = serviceName
-			cluster.NedgeMgmtSvc.ClusterIP = serviceClusterIP
+			cluster.Cluster.Name = serviceName
+			cluster.Cluster.Address = serviceClusterIP
+			cluster.Cluster.Port = "8080"        // should be discoverable
+			cluster.Cluster.Name = "admin"       // should be discoverable
+			cluster.Cluster.Password = "nexenta" // should be discoverable
 			continue
 		}
 
@@ -91,5 +156,4 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 	}
 
 	return cluster, err
-
 }

@@ -29,6 +29,8 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	log.Infof("NodePublishVolume req[%#v]", req)
+	//service := req.GetVolumeAttributes()["service"]
+
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")

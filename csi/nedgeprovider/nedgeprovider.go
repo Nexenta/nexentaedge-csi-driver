@@ -24,6 +24,22 @@ type NedgeNFSVolume struct {
 	Share    string
 }
 
+/*
+type NedgeServiceType string
+
+const (
+	Nfs   = NedgeServiceType("nfs")
+	Iscsi = NedgeServiceType("iscsi")
+)
+*/
+
+type NedgeService struct {
+	Name        string
+	ServiceType string
+	Status      string
+	Network     []string
+}
+
 /*INexentaEdge interface to provide base methods */
 type INexentaEdgeProvider interface {
 	ListClusters() (clusters []string, err error)
@@ -37,6 +53,8 @@ type INexentaEdgeProvider interface {
 	SetServiceAclConfiguration(service string, tenant string, bucket string, value string) error
 	UnsetServiceAclConfiguration(service string, tenant string, bucket string) error
 	GetNfsVolumes(service string) (volumes []NedgeNFSVolume, err error)
+	ListServices() (services []NedgeService, err error)
+	CheckHealth() (err error)
 }
 
 type NexentaEdgeProvider struct {
@@ -58,6 +76,34 @@ func InitNexentaEdgeProvider(restip string, port int16, username string, passwor
 	}
 
 	return nexentaEdgeProviderInstance
+}
+
+/*CheckHealth check connection to the nexentaedge cluster */
+func (nedge *NexentaEdgeProvider) CheckHealth() (err error) {
+	path := "system/status"
+	body, err := nedge.doNedgeRequest("GET", path, nil)
+
+	r := make(map[string]map[string]string)
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+		return jsonerr
+	}
+	if r["response"] == nil {
+
+		err = fmt.Errorf("No response for CheckHealth call: %s", path)
+		log.Debug(err.Error)
+		return err
+	}
+
+	result := r["response"]["restWorker"]
+	if result != "ok" {
+		err = fmt.Errorf("No response for CheckHealth call: %s", path)
+		log.Debug(err.Error)
+		return
+	}
+
+	return nil
 }
 
 /*CreateBucket creates new bucket on NexentaEdge clusters
@@ -137,6 +183,52 @@ func (nedge *NexentaEdgeProvider) setServiceConfigParam(service string, paramete
 	log.Infof("setServiceConfigParam: path:%s values:%+v", path, data)
 	_, err = nedge.doNedgeRequest("PUT", path, data)
 	return err
+}
+
+func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err error) {
+	log.Info("ListServices: ")
+
+	path := "service"
+	body, err := nedge.doNedgeRequest("GET", path, nil)
+
+	//response.data.<service name>.<prop>.value
+	r := make(map[string]map[string]interface{})
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+		return services, jsonerr
+	}
+
+	data := r["response"]["data"]
+	if data == nil {
+		err = fmt.Errorf("No response.data object found for ListService request")
+		log.Debug(err.Error)
+		return services, err
+	}
+
+	for srvName, serviceObj := range data.(map[string]interface{}) {
+
+		serviceVal := serviceObj.(map[string]interface{})
+		status := serviceVal["X-Status"].(string)
+		serviceType := serviceVal["X-Service-Type"].(string)
+
+		service := NedgeService{Name: srvName, ServiceType: serviceType, Status: status, Network: make([]string, 0)}
+		// gets all repetitive props
+		for key, val := range serviceVal {
+			if strings.HasPrefix(key, "X-Container-Network-") {
+				//
+				if strings.HasPrefix(val.(string), "client-net --ip ") {
+					service.Network = append(service.Network, strings.TrimPrefix(val.(string), "client-net --ip "))
+					continue
+				}
+			}
+		}
+
+		services = append(services, service)
+	}
+
+	log.Debugf("ServiceList : %+v\n", services)
+	return services, err
 }
 
 func (nedge *NexentaEdgeProvider) ServeService(service string, cluster string, tenant string, bucket string) (err error) {

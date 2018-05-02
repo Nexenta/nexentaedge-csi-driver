@@ -3,6 +3,7 @@ package nexentaedge
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -33,20 +34,57 @@ var NexentaEdgeInstance INexentaEdge
 
 /*InitNexentaEdge discover nedge k8s cluster */
 func InitNexentaEdge() (nedge INexentaEdge, err error) {
+
+	var k8sCluster NedgeK8sCluster
+	var provider nedgeprovider.INexentaEdgeProvider
 	log.Info("InitNexentaEdgeProvider")
-	k8sCluster, err := GetNedgeCluster()
+
+	k8sCluster, err = GetNedgeCluster()
 	if err != nil {
 		msg := fmt.Sprintf("Can't get NexentaEdge k8s cluster instance, Error: %s", err.Error)
 		log.Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
 
-	if k8sCluster.NedgeMgmtSvc.Name == "" || k8sCluster.NedgeMgmtSvc.ClusterIP == "" {
+	if k8sCluster.Cluster.Name == "" || k8sCluster.Cluster.Address == "" {
 		msg := fmt.Sprintf("Can't find k8s nedge cluster information, Error: %s", err.Error)
 		log.Error(msg)
 		return nil, fmt.Errorf("%s", msg)
 	}
 
+	clusterPort := int16(8080)
+	i, err := strconv.ParseInt(k8sCluster.Cluster.Port, 10, 16)
+	if err == nil {
+		clusterPort = int16(i)
+	}
+
+	provider = nedgeprovider.InitNexentaEdgeProvider(k8sCluster.Cluster.Address, clusterPort, k8sCluster.Cluster.User, k8sCluster.Cluster.Port)
+	err = provider.CheckHealth()
+	if err != nil {
+		log.Infof("InitNexentaEdge failed during CheckHealth : %+v\n", err)
+		return nil, err
+	}
+	log.Infof("Check healtz for %s is OK!", k8sCluster.Cluster.Address)
+
+	// if it StandAlone NedgeCluster we need to get Services list via API
+	if k8sCluster.IsStandAloneCluster() == false {
+
+		services, err := provider.ListServices()
+		if err != nil {
+			log.Infof("InitNexentaEdge failed during ListServices : %+v\n", err)
+			return nil, err
+		}
+
+		for _, service := range services {
+			if service.ServiceType == "nfs" && service.Status == "enabled" {
+				/*TODO Fix NedgeK8Service to support multiple service IPs */
+				newService := NedgeK8sService{Name: service.Name, ClusterIP: service.Network[0]}
+				k8sCluster.NfsServices = append(k8sCluster.NfsServices, newService)
+			}
+		}
+	}
+
+	//check services presence
 	if len(k8sCluster.NfsServices) < 1 {
 		msg := "Can't find k8s nedge cluster NFS services"
 		log.Error(msg)
@@ -54,8 +92,6 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	}
 
 	/* TODO change hardcoded parameters Port, login, password */
-	provider := nedgeprovider.InitNexentaEdgeProvider(k8sCluster.NedgeMgmtSvc.ClusterIP, 8080, "admin", "nexenta")
-
 	NexentaEdgeInstance = &NexentaEdge{
 		Mutex:      &sync.Mutex{},
 		k8sCluster: k8sCluster,
