@@ -57,6 +57,8 @@ spec:
             - name: pods-mount-dir
               mountPath: /var/lib/kubelet/pods
               mountPropagation: "Bidirectional"
+            - name: secret
+              mountPath: /config
       volumes:
         - name: plugin-dir
           hostPath:
@@ -66,3 +68,6 @@ spec:
           hostPath:
             path: /var/lib/kubelet/pods
             type: Directory
+        - name: secret
+          secret:
+              secretName: nexentaedge-cluster
