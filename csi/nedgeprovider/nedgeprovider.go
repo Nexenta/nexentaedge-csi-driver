@@ -65,7 +65,11 @@ type NexentaEdgeProvider struct {
 var nexentaEdgeProviderInstance INexentaEdgeProvider
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
-	log.Info("GetNexentaEdgeProvider: ")
+	log.SetLevel(log.DebugLevel)
+	log.Info("InitNexentaEdgeProvideri\n")
+	loggerLevel := log.GetLevel()
+	log.Infof("LOGGER LEVEL IS: %s\n", loggerLevel.String())
+
 	if nexentaEdgeProviderInstance == nil {
 		log.Info("InitNexentaEdgeProvider initialization")
 
@@ -83,7 +87,13 @@ func (nedge *NexentaEdgeProvider) CheckHealth() (err error) {
 	path := "system/status"
 	body, err := nedge.doNedgeRequest("GET", path, nil)
 
-	r := make(map[string]map[string]string)
+	if err != nil {
+		err = fmt.Errorf("Failed to send request %s, err: %s\n", path, err.Error)
+		log.Error(err.Error)
+		return err
+	}
+
+	r := make(map[string]map[string]interface{})
 	jsonerr := json.Unmarshal(body, &r)
 	if jsonerr != nil {
 		log.Error(jsonerr)

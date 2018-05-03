@@ -41,7 +41,6 @@ spec:
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
-
         - name: nfs
           image: 10.3.30.75:5000/nexentaedge-csi-plugin:2.1.3
           args :
@@ -62,3 +61,4 @@ spec:
       volumes:
         - name: socket-dir
           emptyDir:
+
