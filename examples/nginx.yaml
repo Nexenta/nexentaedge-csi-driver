@@ -14,7 +14,7 @@ spec:
     storage: 1Gi
   csi:
     driver: nexentaedge-csi-plugin
-    volumeHandle: cltest/demo/testBucket
+    volumeHandle: clu1/ten1/csi-bucket
     volumeAttributes:
       service: nfssvc
 
@@ -33,7 +33,7 @@ spec:
     matchExpressions:
     - key: name
       operator: In
-      values: ["csi-nedge-pvc"]
+      values: ["csi-nedge-pv"]
 ---
 apiVersion: v1
 kind: Pod
