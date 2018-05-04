@@ -30,13 +30,14 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	log.Infof("NodePublishVolume req[%#v]", req)
 	//service := req.GetVolumeAttributes()["service"]
-
+	log.Info("NodePublishVolume:InitNexentaEdge")
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err
 	}
 
+	log.Info("NodePublishVolume:nedge : %+v\n", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 	// Check arguments
@@ -48,6 +49,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	nedgeVolume, err := nedge.GetVolume(volumeID)
+	log.Info("NodePublishVolume:GetVolume volume is %+v\n", nedgeVolume)
 	if nedgeVolume == nil {
 		log.Infof("No %s volume found for volumeID: %s ", volumeID)
 		return nil, status.Errorf(codes.NotFound, "Volume id %s not found", volumeID)
