@@ -25,8 +25,8 @@ const (
 )
 
 type NedgeK8sService struct {
-	Name      string
-	ClusterIP string
+	Name   string
+	DataIP string
 }
 
 type NedgeK8sCluster struct {
@@ -57,14 +57,14 @@ func IsConfigFileExists() bool {
 func ReadParseConfig() (config NedgeClusterConfig, err error) {
 	content, err := ioutil.ReadFile(nedgeConfigFile)
 	if err != nil {
-		err = fmt.Errorf("Error reading config file: %s error: %s\n", nedgeConfigFile, err)
+		err = fmt.Errorf("error reading config file: %s error: %s\n", nedgeConfigFile, err)
 		log.Error(err.Error)
 		return config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		err = fmt.Errorf("Error parsing config file: %s error: %s\n", nedgeConfigFile, err)
+		err = fmt.Errorf("error parsing config file: %s error: %s\n", nedgeConfigFile, err)
 		log.Error(err.Error)
 		return config, err
 	}
@@ -153,7 +153,7 @@ func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
 
 		if strings.HasPrefix(serviceName, K8sNedgeNfsPrefix) {
 			nfsSvcName := strings.TrimPrefix(serviceName, K8sNedgeNfsPrefix)
-			cluster.NfsServices = append(cluster.NfsServices, NedgeK8sService{Name: nfsSvcName, ClusterIP: serviceClusterIP})
+			cluster.NfsServices = append(cluster.NfsServices, NedgeK8sService{Name: nfsSvcName, DataIP: serviceClusterIP})
 		}
 	}
 

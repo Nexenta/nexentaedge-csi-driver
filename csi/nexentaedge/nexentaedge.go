@@ -1,10 +1,8 @@
 package nexentaedge
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
@@ -20,8 +18,8 @@ type INexentaEdge interface {
 	ListVolumes() ([]nedgeprovider.NedgeNFSVolume, error)
 	IsVolumeExist(volumeID string) bool
 	GetVolume(volumeName string) (volume *nedgeprovider.NedgeNFSVolume, err error)
-	GetVolumeID(volumeName string) (volumeID string, err error)
-	GetDataIP() string
+	//GetVolumeID(volumeName string) (volumeID string, err error)
+	GetDataIP(serviceName string) (string, error)
 }
 
 type NexentaEdge struct {
@@ -38,7 +36,6 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	var k8sCluster NedgeK8sCluster
 	var provider nedgeprovider.INexentaEdgeProvider
 	log.Info("InitNexentaEdgeProvider")
-	log.SetLevel(log.DebugLevel)
 
 	k8sCluster, err = GetNedgeCluster()
 	log.Info("k8s Cluster: %+v", k8sCluster)
@@ -69,7 +66,7 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	log.Infof("Check healtz for %s is OK!", k8sCluster.Cluster.Address)
 
 	// if it StandAlone NedgeCluster we need to get Services list via API
-	if k8sCluster.IsStandAloneCluster() == true {
+	if k8sCluster.IsStandAloneCluster() == false {
 
 		services, err := provider.ListServices()
 		if err != nil {
@@ -80,13 +77,12 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 		for _, service := range services {
 			if service.ServiceType == "nfs" && service.Status == "enabled" {
 				/*TODO Fix NedgeK8Service to support multiple service IPs */
-				newService := NedgeK8sService{Name: service.Name, ClusterIP: service.Network[0]}
+				newService := NedgeK8sService{Name: service.Name, DataIP: service.Network[0]}
 				k8sCluster.NfsServices = append(k8sCluster.NfsServices, newService)
 			}
 		}
 	}
 
-	log.Debugf("K8sCluster: %+v\n", k8sCluster)
 	//check services presence
 	if len(k8sCluster.NfsServices) < 1 {
 		msg := "Can't find k8s nedge cluster NFS services"
@@ -104,28 +100,34 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	return NexentaEdgeInstance, nil
 }
 
-/*GetDataIP returns nfs endpoint IP to create share */
-func (nedge *NexentaEdge) GetDataIP() string {
-	return nedge.k8sCluster.NfsServices[0].ClusterIP
+/*GetDataIP returns nfs endpoint IP to create share, for Nedge K8S cluster only */
+func (nedge *NexentaEdge) GetDataIP(serviceName string) (string, error) {
+	for _, service := range nedge.k8sCluster.NfsServices {
+		if service.Name == serviceName {
+			return service.DataIP, nil
+		}
+	}
+	return "", fmt.Errorf("No service %s found ", serviceName)
 }
 
 /*IsVolumeExist check volume existance, */
 func (nedge *NexentaEdge) IsVolumeExist(volumeID string) bool {
 
-	if isVolumeID(volumeID) {
-		cluster, tenant, bucket := parseVolumeID(volumeID)
-		// get first service from list, should be changed later
+	volID, err := nedgeprovider.ParseVolumeID(volumeID)
+	if err != nil {
+		return false
+	}
 
-		if nedge.provider.IsBucketExist(cluster, tenant, bucket) {
-			volume, _ := nedge.GetVolume(volumeID)
-			if volume != nil {
-				return true
-			}
+	if nedge.provider.IsBucketExist(volID.Cluster, volID.Tenant, volID.Bucket) {
+		volume, _ := nedge.GetVolume(volumeID)
+		if volume != nil {
+			return true
 		}
 	}
 	return false
 }
 
+/*
 func (nedge *NexentaEdge) GetVolumeID(name string) (volumeID string, err error) {
 	// get first service from list, should be changed later
 	if isVolumeID(name) {
@@ -162,13 +164,14 @@ func (nedge *NexentaEdge) GetVolumeID(name string) (volumeID string, err error) 
 	return cluster + "/" + tenants[0] + "/" + name, err
 
 }
+*/
 
 /*GetVolume returns NedgeNFSVolume if it exists, otherwise return nil*/
 func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error) {
 	// get first service from list, should be changed later
 	service := nedge.k8sCluster.NfsServices[0]
 
-	volumes, err := nedge.provider.GetNfsVolumes(service.Name)
+	volumes, err := nedge.provider.ListNFSVolumes(service.Name)
 	if err != nil {
 		log.Fatal("ListVolumes failed Error: ", err)
 		return nil, err
@@ -190,22 +193,21 @@ func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.Nedg
 /*CreateVolume remotely creates bucket on nexentaedge service*/
 func (nedge *NexentaEdge) CreateVolume(name string, size int) (err error) {
 	// get first service from list, should be changed later
-	service := nedge.k8sCluster.NfsServices[0]
+	//service := nedge.k8sCluster.NfsServices[0]
 
-	if !isVolumeID(name) {
-		name = "clu/ten/" + name
+	volID, err := nedgeprovider.ParseVolumeID(name)
+	if err != nil {
+		return err
 	}
 
-	cluster, tenant, bucket := parseVolumeID(name)
-
-	log.Infof("NexentaEdgeProvider:CreateVolume for serviceName: %s, %s/%s/%s, size: %d", service.Name, cluster, tenant, bucket, size)
-	err = nedge.provider.CreateBucket(cluster, tenant, bucket, 100, nil)
+	log.Infof("NexentaEdgeProvider:CreateVolume for serviceName: %s, %s/%s/%s, size: %d", volID.Service, volID.Cluster, volID.Tenant, volID.Bucket, 0)
+	err = nedge.provider.CreateBucket(volID.Cluster, volID.Tenant, volID.Bucket, 0, nil)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on createBucket error: %s", err)
 		return err
 	}
 
-	err = nedge.provider.ServeService(service.Name, cluster, tenant, bucket)
+	err = nedge.provider.ServeBucket(volID.Service, volID.Cluster, volID.Tenant, volID.Bucket)
 	if err != nil {
 		err = fmt.Errorf("CreateVolume failed on serveService error: %s", err)
 		return err
@@ -218,18 +220,22 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 	log.Info("NexentaEdgeProvider:DeleteVolume  VolumeID: ", volumeID)
 
 	// get first service from list, should be changed later
-	service := nedge.k8sCluster.NfsServices[0]
-	cluster, tenant, bucket := parseVolumeID(volumeID)
+	volID, err := nedgeprovider.ParseVolumeID(volumeID)
+	if err != nil {
+		return err
+	}
 
-	log.Infof("NexentaEdgeProvider:DeleteVolume for serviceName: %s: %s/%s/%s", service, cluster, tenant, bucket)
+	log.Infof("NexentaEdgeProvider:DeleteVolume for serviceName: %s@%s/%s/%s", volID.Service, volID.Cluster, volID.Tenant, volID.Bucket)
 
-	err = nedge.provider.UnserveService(service.Name, cluster, tenant, bucket)
+	//TODO Add check that service already served
+	err = nedge.provider.UnserveBucket(volID.Service, volID.Cluster, volID.Tenant, volID.Bucket)
 	if err != nil {
 		err = fmt.Errorf("DeleteVolume failed on unserveService, error: %s", err)
 		return err
 	}
 
-	err = nedge.provider.DeleteBucket(cluster, tenant, bucket)
+	//TODO Add check that bucket already exist
+	err = nedge.provider.DeleteBucket(volID.Cluster, volID.Tenant, volID.Bucket)
 	if err != nil {
 		err = fmt.Errorf("DeleteVolume failed on deleteBucket, error: %s", err)
 		return err
@@ -242,32 +248,11 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume, err error) {
 	log.Info("NexentaEdgeProvider ListVolumes: ")
 	service := nedge.k8sCluster.NfsServices[0]
-	nfsVolumes, err := nedge.provider.GetNfsVolumes(service.Name)
+	nfsVolumes, err := nedge.provider.ListNFSVolumes(service.Name)
 	if err != nil {
 		log.Error(err)
 		return nil, fmt.Errorf("ListVolumes failed. Error: %v", err)
 	}
 
 	return nfsVolumes, nil
-}
-
-func isVolumeID(volumeID string) bool {
-
-	parts := strings.Split(volumeID, "/")
-	if len(parts) == 3 {
-		return true
-	}
-
-	return false
-}
-
-func parseVolumeID(volumeID string) (cluster string, tenant string, bucket string) {
-	parts := strings.Split(volumeID, "/")
-	if len(parts) == 3 {
-		cluster = parts[0]
-		tenant = parts[1]
-		bucket = parts[2]
-		return
-	}
-	return "", "", ""
 }
