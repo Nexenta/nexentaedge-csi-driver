@@ -2,7 +2,6 @@ package csi
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 
@@ -24,10 +23,6 @@ func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume *nedgeprovider.Nedge
 	volume.Id = nedgeVolume.VolumeID
 	volume.Attributes = make(map[string]string)
 	volume.Attributes["share"] = nedgeVolume.Share
-	parts := strings.Split(nedgeVolume.Path, "/")
-	volume.Attributes["cluster"] = parts[0]
-	volume.Attributes["tenant"] = parts[1]
-	volume.Attributes["bucket"] = parts[2]
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -52,13 +47,13 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		Volume: resultVolume,
 	}
 
-	volumeID, err := nedge.GetVolumeID(volumeName)
+	volumeID, err := nedgeprovider.ParseVolumeID(volumeName)
 	if err != nil {
 		log.Infof("Failed to GetVolumeID(%s): %v", volumeID, err)
 		return nil, err
 	}
 
-	nedgeVolume, err := nedge.GetVolume(volumeID)
+	nedgeVolume, err := nedge.GetVolume(volumeName)
 	//volume already exists, returns
 	if nedgeVolume != nil {
 		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
@@ -72,13 +67,13 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	// Volume Create
 	log.Info("Creating volume: ", volumeID)
-	err = nedge.CreateVolume(volumeID, 100)
+	err = nedge.CreateVolume(volumeName, 100)
 	if err != nil {
 		log.Infof("Failed to CreateVolume: %v", err)
 		return nil, err
 	}
 
-	newNedgeVolume, err := nedge.GetVolume(volumeID)
+	newNedgeVolume, err := nedge.GetVolume(volumeName)
 	if newNedgeVolume == nil {
 		log.Infof("Failed to get created volume by name, %v", err)
 		return nil, err

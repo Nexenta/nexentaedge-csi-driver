@@ -169,9 +169,28 @@ func (nedge *NexentaEdge) GetVolumeID(name string) (volumeID string, err error) 
 /*GetVolume returns NedgeNFSVolume if it exists, otherwise return nil*/
 func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error) {
 	// get first service from list, should be changed later
-	service := nedge.k8sCluster.NfsServices[0]
 
-	volumes, err := nedge.provider.ListNFSVolumes(service.Name)
+	volID, err := nedgeprovider.ParseVolumeID(volumeID)
+	if err != nil {
+		return nil, err
+	}
+
+	// cluster services detected by K8S API not by Nedge Service list
+	if nedge.k8sCluster.isStandAloneCluster == false {
+		// check service name in cluster service list
+		serviceFound := false
+		for _, k8sNedgeNfsService := range nedge.k8sCluster.NfsServices {
+			if k8sNedgeNfsService.Name == volID.Service {
+				serviceFound = true
+				break
+			}
+		}
+		if serviceFound != true {
+			return nil, fmt.Errorf("Service %s has not been detected for volumeId %s", volID.Service, volumeID)
+		}
+	}
+
+	volumes, err := nedge.provider.ListNFSVolumes(volID.Service)
 	if err != nil {
 		log.Fatal("ListVolumes failed Error: ", err)
 		return nil, err

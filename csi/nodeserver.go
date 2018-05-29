@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
@@ -48,6 +49,11 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Target path must be provided")
 	}
 
+	volID, err := nedgeprovider.ParseVolumeID(volumeID)
+	if err != nil {
+		return nil, err
+	}
+
 	nedgeVolume, err := nedge.GetVolume(volumeID)
 	log.Info("NodePublishVolume:GetVolume volume is %+v\n", nedgeVolume)
 	if nedgeVolume == nil {
@@ -72,7 +78,12 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	source := fmt.Sprintf("%s:%s", nedge.GetDataIP(), nedgeVolume.Share)
+	dataIP, err := nedge.GetDataIP(volID.Service)
+	if err != nil {
+		return &csi.NodePublishVolumeResponse{}, nil
+	}
+
+	source := fmt.Sprintf("%s:%s", dataIP, nedgeVolume.Share)
 	log.Infof("NexentaEdge exports %s as %s", volumeID, source)
 
 	err = mounter.Mount(source, targetPath, "nfs", nil)
@@ -93,19 +104,6 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
 	log.Infof("NodeUnpublishVolume req[%#v]", req)
 
-	/*
-		nedge, err := nexentaedge.GetNexentaEdgeProvider()
-		if err != nil {
-			log.Fatalf("Failed to get NexentaEdgeProvider instance %v", err)
-		}
-
-		// Check arguments
-		if len(req.GetVolumeId()) == 0 {
-			return nil, status.Error(codes.InvalidArgument, "Volume id must be provided")
-		}
-
-		//log.Info("NodeUnpublishVolume invoked: targetPath:", targetPath)
-	*/
 	targetPath := req.GetTargetPath()
 	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
 
