@@ -28,8 +28,6 @@ func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume *nedgeprovider.Nedge
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	log.Infof("CreateVolume req[%#v]", req)
 
-	//service := req.Parameters["service"]
-
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
@@ -160,8 +158,6 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 		}
 		nedgeVolumeToCSIVolume(entries[i].Volume, &v)
 	}
-
-	//entries := make([]*csi.ListVolumesResponse_Entry, 0)
 
 	return &csi.ListVolumesResponse{
 		Entries: entries,

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 	log "github.com/sirupsen/logrus"
 	//"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +33,7 @@ type NedgeK8sService struct {
 type NedgeK8sCluster struct {
 	Cluster             NedgeClusterConfig
 	isStandAloneCluster bool
-	NfsServices         []NedgeK8sService
+	NfsServices         []nedgeprovider.NedgeService
 }
 
 type NedgeClusterConfig struct {
@@ -88,12 +89,12 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 		log.Infof("Config file %s found", nedgeConfigFile)
 		config, err := ReadParseConfig()
 		if err != nil {
-			err = fmt.Errorf("Error reading config file %s error: \n", nedgeConfigFile, err.Error)
+			err = fmt.Errorf("Error reading config file %s error: %s\n", nedgeConfigFile, err)
 			return cluster, err
 		}
 
 		log.Infof("StandAloneClusterConfig: %+v ", config)
-		cluster = NedgeK8sCluster{Cluster: config, NfsServices: make([]NedgeK8sService, 0)}
+		cluster = NedgeK8sCluster{Cluster: config, NfsServices: make([]nedgeprovider.NedgeService, 0)}
 		cluster.isStandAloneCluster = true
 
 	} else {
@@ -153,7 +154,9 @@ func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
 
 		if strings.HasPrefix(serviceName, K8sNedgeNfsPrefix) {
 			nfsSvcName := strings.TrimPrefix(serviceName, K8sNedgeNfsPrefix)
-			cluster.NfsServices = append(cluster.NfsServices, NedgeK8sService{Name: nfsSvcName, DataIP: serviceClusterIP})
+			serviceNetwork := []string{serviceClusterIP}
+			newService := nedgeprovider.NedgeService{Name: nfsSvcName, ServiceType: "nfs", Status: "active", Network: serviceNetwork}
+			cluster.NfsServices = append(cluster.NfsServices, newService)
 		}
 	}
 
