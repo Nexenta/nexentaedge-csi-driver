@@ -44,7 +44,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	cluster := params["cluster"]
 	tenant := params["tenant"]
 
-	volumeID := fmt.Sprintf("%s:%s/%s/%s", service, cluster, tenant, volumeName)
+	volumeID := fmt.Sprintf("%s@%s/%s/%s", service, cluster, tenant, volumeName)
 
 	// CreateVolume response
 	resultVolume := &csi.Volume{}
