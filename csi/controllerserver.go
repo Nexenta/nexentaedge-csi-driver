@@ -26,7 +26,7 @@ func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume *nedgeprovider.Nedge
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	log.Infof("CreateVolume req[%#v]", req)
+	log.Infof("CreateVolume req[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
@@ -83,7 +83,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	log.Infof("DeleteVolume req[%#v]", req)
+	log.Infof("DeleteVolume req[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
