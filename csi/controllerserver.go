@@ -74,7 +74,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	// Volume Create
 	log.Info("Creating volume: ", volumeID)
-	err = nedge.CreateVolume(volumeName, 100)
+	err = nedge.CreateVolume(volumeID, 100)
 	if err != nil {
 		log.Infof("Failed to CreateVolume: %v", err)
 		return nil, err
