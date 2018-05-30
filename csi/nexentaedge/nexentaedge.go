@@ -102,13 +102,22 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 }
 
 /*GetDataIP returns nfs endpoint IP to create share, for Nedge K8S cluster only */
-func (nedge *NexentaEdge) GetDataIP(serviceName string) (string, error) {
-	for _, service := range nedge.k8sCluster.NfsServices {
-		if service.Name == serviceName {
-			return service.Network[0], nil
+func (nedge *NexentaEdge) GetDataIP(serviceName string) (dataIP string, err error) {
+
+	services := nedge.k8sCluster.NfsServices
+	if nedge.k8sCluster.isStandAloneCluster {
+		services, err = nedge.provider.ListServices()
+		if err != nil {
+			return dataIP, err
 		}
 	}
-	return "", fmt.Errorf("No service %s found ", serviceName)
+
+	for _, service := range services {
+		if service.Name == serviceName {
+			return service.Network[0], err
+		}
+	}
+	return dataIP, fmt.Errorf("No service %s found ", serviceName)
 }
 
 /*IsVolumeExist check volume existance, */

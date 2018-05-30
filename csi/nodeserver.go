@@ -83,7 +83,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	dataIP, err := nedge.GetDataIP(volID.Service)
 	if err != nil {
 		log.Infof("Get DataIP error %s\n", err)
-		return &csi.NodePublishVolumeResponse{}, nil
+		return nil, err
 	}
 
 	source := fmt.Sprintf("%s:%s", dataIP, nedgeVolume.Share)
@@ -113,9 +113,9 @@ func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpu
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, status.Error(codes.NotFound, "Targetpath not found")
-		} else {
-			return nil, status.Error(codes.Internal, err.Error())
 		}
+		return nil, status.Error(codes.Internal, err.Error())
+
 	}
 	if notMnt {
 		return nil, status.Error(codes.NotFound, "Volume not mounted")
