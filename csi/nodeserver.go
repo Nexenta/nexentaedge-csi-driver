@@ -41,6 +41,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	log.Info("NodePublishVolume:nedge : %+v\n", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
+
 	// Check arguments
 	if len(volumeID) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "Volume id must be provided")
@@ -75,16 +76,18 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if !notMnt {
+		log.Info("notMnt is False skipping")
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
 	dataIP, err := nedge.GetDataIP(volID.Service)
 	if err != nil {
+		log.Infof("Get DataIP error %s\n", err)
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
 	source := fmt.Sprintf("%s:%s", dataIP, nedgeVolume.Share)
-	log.Infof("NexentaEdge exports %s as %s", volumeID, source)
+	log.Infof("NexentaEdge export %s endpoint is %s", volumeID, source)
 
 	err = mounter.Mount(source, targetPath, "nfs", nil)
 	if err != nil {
@@ -97,7 +100,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	//log.Info("NodePublishVolume invoked: targetPath:", targetPath, ", fsType:", fsType, " devicePath:", devicePath)
+	log.Infof("NodePublishVolume invoked: volumeID: %s, targetPath: %s, endpoint: %s", volumeID, targetPath, source)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
