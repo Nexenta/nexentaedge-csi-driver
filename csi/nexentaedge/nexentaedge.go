@@ -174,7 +174,6 @@ func (nedge *NexentaEdge) GetVolume(volumeID string) (volume *nedgeprovider.Nedg
 /*CreateVolume remotely creates bucket on nexentaedge service*/
 func (nedge *NexentaEdge) CreateVolume(name string, size int) (err error) {
 	// get first service from list, should be changed later
-	//service := nedge.k8sCluster.NfsServices[0]
 
 	volID, err := nedgeprovider.ParseVolumeID(name)
 	if err != nil {

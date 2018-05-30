@@ -14,9 +14,7 @@ spec:
     storage: 1Gi
   csi:
     driver: nexentaedge-csi-plugin
-    volumeHandle: clu1/ten1/csi-bucket
-    volumeAttributes:
-      service: nfssvc
+    volumeHandle: nfs@clu1/ten1/buk1
 
 ---
 apiVersion: v1
