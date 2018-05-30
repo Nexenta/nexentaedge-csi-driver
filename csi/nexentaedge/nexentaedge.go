@@ -105,8 +105,9 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 func (nedge *NexentaEdge) GetDataIP(serviceName string) (dataIP string, err error) {
 
 	services := nedge.k8sCluster.NfsServices
-	if nedge.k8sCluster.isStandAloneCluster {
+	if nedge.k8sCluster.isStandAloneCluster == true {
 		services, err = nedge.provider.ListServices()
+		log.Infof("GetDataIP StandAloneCluster ServiceList: %+v\n", services)
 		if err != nil {
 			return dataIP, err
 		}
