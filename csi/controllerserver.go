@@ -39,19 +39,28 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		volumeName = "csi-volume-" + uuid.NewUUID().String()
 	}
 
+	params := req.GetParameters()
+	service := params["service"]
+	cluster := params["cluster"]
+	tenant := params["tenant"]
+
+	volumeID := fmt.Sprintf("%s:%s/%s/%s", service, cluster, tenant, volumeName)
+
 	// CreateVolume response
 	resultVolume := &csi.Volume{}
 	resp := &csi.CreateVolumeResponse{
 		Volume: resultVolume,
 	}
 
-	volumeID, err := nedgeprovider.ParseVolumeID(volumeName)
-	if err != nil {
-		log.Infof("Failed to GetVolumeID(%s): %v", volumeID, err)
-		return nil, err
-	}
+	/*
+		volumeID, err := nedgeprovider.ParseVolumeID(volumeName)
+		if err != nil {
+			log.Infof("Failed to GetVolumeID(%s): %v", volumeID, err)
+			return nil, err
+		}
+	*/
 
-	nedgeVolume, err := nedge.GetVolume(volumeName)
+	nedgeVolume, err := nedge.GetVolume(volumeID)
 	//volume already exists, returns
 	if nedgeVolume != nil {
 		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
@@ -71,7 +80,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	newNedgeVolume, err := nedge.GetVolume(volumeName)
+	newNedgeVolume, err := nedge.GetVolume(volumeID)
 	if newNedgeVolume == nil {
 		log.Infof("Failed to get created volume by name, %v", err)
 		return nil, err
