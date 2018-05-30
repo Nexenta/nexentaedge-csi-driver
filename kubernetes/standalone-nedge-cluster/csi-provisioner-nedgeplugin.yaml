@@ -52,11 +52,11 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
             - name: CSI_ENDPOINT
-              value: unix://csi/csi.sock
+              value: unix://plugin/csi.sock
           imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
-              mountPath: /csi
+              mountPath: /plugin
             - name: secret
               mountPath: /config
               readOnly: true
