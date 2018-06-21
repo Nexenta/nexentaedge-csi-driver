@@ -25,29 +25,6 @@ const (
 	k8sClientInCluster = true
 )
 
-type NedgeK8sService struct {
-	Name   string
-	DataIP string
-}
-
-type NedgeK8sCluster struct {
-	Cluster             NedgeClusterConfig
-	isStandAloneCluster bool
-	NfsServices         []nedgeprovider.NedgeService
-}
-
-type NedgeClusterConfig struct {
-	Name     string
-	Address  string
-	Port     string
-	User     string
-	Password string
-}
-
-func (cluster *NedgeK8sCluster) IsStandAloneCluster() bool {
-	return cluster.isStandAloneCluster
-}
-
 func IsConfigFileExists() bool {
 	if _, err := os.Stat(nedgeConfigFile); os.IsNotExist(err) {
 		return false
@@ -82,7 +59,8 @@ func homeDir() string {
 }
 
 /* TODO should be expanded to multiple clusters */
-func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
+/*
+func GetNedgeCluster() (cluster ClusterData, err error) {
 
 	//check config file exists
 	if IsConfigFileExists() {
@@ -94,22 +72,24 @@ func GetNedgeCluster() (cluster NedgeK8sCluster, err error) {
 		}
 
 		log.Infof("StandAloneClusterConfig: %+v ", config)
-		cluster = NedgeK8sCluster{Cluster: config, NfsServices: make([]nedgeprovider.NedgeService, 0)}
-		cluster.isStandAloneCluster = true
-
+		cluster = ClusterData{isStandAloneCluster: true, clusterConfig: config, nfsServicesData: make([]NfsServiceData, 0)}
 	} else {
-		cluster, err = DetectNedgeK8sCluster()
-		cluster.isStandAloneCluster = false
+		isClusterExists, err := DetectNedgeK8sCluster()
+		if isClusterExists {
+			cluster.isStandAloneCluster = false
+		}
 	}
 
 	return cluster, err
 }
+*/
 
-func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
+/* Will check k8s nedge cluster existance and will update NedgeClusterConfig information*/
+func DetectNedgeK8sCluster(config *NedgeClusterConfig) (clusterExists bool, err error) {
 	var kubeconfig string
-	var config *rest.Config
+	var restConfig *rest.Config
 	if k8sClientInCluster == true {
-		config, err = rest.InClusterConfig()
+		restConfig, err = rest.InClusterConfig()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -118,23 +98,23 @@ func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
 			kubeconfig = filepath.Join(home, ".kube", "config")
 		}
 		// use the current context in kubeconfig
-		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {
-			return cluster, err
+			return false, err
 		}
 	}
 
 	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
-		return cluster, err
+		return false, err
 	}
 
 	svcs, err := clientset.CoreV1().Services(K8sNedgeNamespace).List(metav1.ListOptions{})
 	//log.Infof("SVCS: %+v\n", svcs)
 	if err != nil {
 		log.Errorf("Error: %v\n", err)
-		return cluster, err
+		return false, err
 	}
 
 	for _, svc := range svcs.Items {
@@ -144,21 +124,59 @@ func DetectNedgeK8sCluster() (cluster NedgeK8sCluster, err error) {
 		serviceClusterIP := svc.Spec.ClusterIP
 
 		if strings.HasPrefix(serviceName, K8sNedgeMgmtPrefix) {
-			cluster.Cluster.Name = serviceName
-			cluster.Cluster.Address = serviceClusterIP
-			cluster.Cluster.Port = "8080"        // should be discoverable
-			cluster.Cluster.Name = "admin"       // should be discoverable
-			cluster.Cluster.Password = "nexenta" // should be discoverable
-			continue
+			config.Address = serviceClusterIP
+			return true, err
 		}
+	}
+	return false, err
+}
+
+func GetNedgeK8sClusterServices() (services []nedgeprovider.NedgeService, err error) {
+	var kubeconfig string
+	var restConfig *rest.Config
+	if k8sClientInCluster == true {
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			panic(err.Error())
+		}
+	} else {
+		if home := homeDir(); home != "" {
+			kubeconfig = filepath.Join(home, ".kube", "config")
+		}
+		// use the current context in kubeconfig
+		restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return services, err
+		}
+	}
+
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return services, err
+	}
+
+	svcs, err := clientset.CoreV1().Services(K8sNedgeNamespace).List(metav1.ListOptions{})
+	//log.Infof("SVCS: %+v\n", svcs)
+	if err != nil {
+		log.Errorf("Error: %v\n", err)
+		return services, err
+	}
+
+	for _, svc := range svcs.Items {
+		//log.Infof("Item: %+v\n", svc)
+
+		serviceName := svc.GetName()
+		serviceClusterIP := svc.Spec.ClusterIP
 
 		if strings.HasPrefix(serviceName, K8sNedgeNfsPrefix) {
 			nfsSvcName := strings.TrimPrefix(serviceName, K8sNedgeNfsPrefix)
 			serviceNetwork := []string{serviceClusterIP}
+
 			newService := nedgeprovider.NedgeService{Name: nfsSvcName, ServiceType: "nfs", Status: "active", Network: serviceNetwork}
-			cluster.NfsServices = append(cluster.NfsServices, newService)
+			services = append(services, newService)
 		}
 	}
 
-	return cluster, err
+	return services, err
 }
