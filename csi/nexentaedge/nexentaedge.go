@@ -34,7 +34,7 @@ type NedgeClusterConfig struct {
 	Name                string
 	Nedgerest           string
 	Nedgeport           string
-	User                string
+	Username            string
 	Password            string
 	Cluster             string
 	ForceBucketDeletion bool            `json:"forceBucketDeletion"`
@@ -85,7 +85,7 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 		clusterPort = int16(i)
 	}
 
-	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.User, config.Password)
+	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.Username, config.Password)
 	err = provider.CheckHealth()
 	if err != nil {
 		log.Infof("InitNexentaEdge failed during CheckHealth : %+v\n", err)
