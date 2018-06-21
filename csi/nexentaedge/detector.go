@@ -47,6 +47,7 @@ func ReadParseConfig() (config NedgeClusterConfig, err error) {
 		return config, err
 	}
 
+	config.ServiceFilterMap = make(map[string]bool)
 	return config, nil
 }
 
@@ -124,7 +125,7 @@ func DetectNedgeK8sCluster(config *NedgeClusterConfig) (clusterExists bool, err 
 		serviceClusterIP := svc.Spec.ClusterIP
 
 		if strings.HasPrefix(serviceName, K8sNedgeMgmtPrefix) {
-			config.Address = serviceClusterIP
+			config.Nedgerest = serviceClusterIP
 			return true, err
 		}
 	}

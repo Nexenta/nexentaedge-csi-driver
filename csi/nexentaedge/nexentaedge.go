@@ -32,8 +32,8 @@ type NexentaEdge struct {
 
 type NedgeClusterConfig struct {
 	Name                string
-	Address             string
-	Port                string
+	Nedgerest           string
+	Nedgeport           string
 	User                string
 	Password            string
 	Cluster             string
@@ -62,6 +62,8 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 		}
 
 		log.Infof("ClusterConfig: %+v ", config)
+	} else {
+		return nil, fmt.Errorf("No Cluster configuration file found: %s\n", nedgeConfigFile)
 	}
 
 	if config.ServiceFilter != "" {
@@ -72,7 +74,7 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 	}
 
 	// No address information for k8s Nedge cluster
-	if config.Address == "" {
+	if config.Nedgerest == "" {
 		isClusterExists, err := DetectNedgeK8sCluster(&config)
 		if isClusterExists && err != nil {
 			isStandAloneCluster = false
@@ -81,18 +83,18 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 
 	//default port
 	clusterPort := int16(8080)
-	i, err := strconv.ParseInt(config.Port, 10, 16)
+	i, err := strconv.ParseInt(config.Nedgeport, 10, 16)
 	if err == nil {
 		clusterPort = int16(i)
 	}
 
-	provider = nedgeprovider.InitNexentaEdgeProvider(config.Address, clusterPort, config.User, config.Password)
+	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.User, config.Password)
 	err = provider.CheckHealth()
 	if err != nil {
 		log.Infof("InitNexentaEdge failed during CheckHealth : %+v\n", err)
 		return nil, err
 	}
-	log.Infof("Check healtz for %s is OK!", config.Address)
+	log.Infof("Check healtz for %s is OK!", config.Nedgerest)
 
 	NexentaEdgeInstance = &NexentaEdge{
 		Mutex:               &sync.Mutex{},
