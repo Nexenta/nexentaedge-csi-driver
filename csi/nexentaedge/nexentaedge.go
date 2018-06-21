@@ -53,19 +53,13 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 
 	log.Info("InitNexentaEdgeProvider")
 
-	if IsConfigFileExists() {
-		log.Infof("Config file %s found", nedgeConfigFile)
-		config, err = ReadParseConfig()
-		if err != nil {
-			err = fmt.Errorf("Error reading config file %s error: %s\n", nedgeConfigFile, err)
-			return nil, err
-		}
-
-		log.Infof("ClusterConfig: %+v ", config)
-	} else {
-		return nil, fmt.Errorf("No Cluster configuration file found: %s\n", nedgeConfigFile)
+	config, err = ReadParseConfig()
+	if err != nil {
+		err = fmt.Errorf("Error reading config file %s \nError: %s\n", nedgeConfigFile, err)
+		return nil, err
 	}
 
+	config.ServiceFilterMap = make(map[string]bool)
 	if config.ServiceFilter != "" {
 		services := strings.Split(config.ServiceFilter, ",")
 		for _, srvName := range services {
@@ -75,9 +69,12 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 
 	// No address information for k8s Nedge cluster
 	if config.Nedgerest == "" {
-		isClusterExists, err := DetectNedgeK8sCluster(&config)
-		if isClusterExists && err != nil {
+		isClusterExists, _ := DetectNedgeK8sCluster(&config)
+
+		if isClusterExists {
 			isStandAloneCluster = false
+		} else {
+			return nil, fmt.Errorf("No NexentaEdge Cluster has been found\n")
 		}
 	}
 

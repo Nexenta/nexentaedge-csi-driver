@@ -33,6 +33,12 @@ func IsConfigFileExists() bool {
 }
 
 func ReadParseConfig() (config NedgeClusterConfig, err error) {
+
+	if !IsConfigFileExists() {
+		log.Infof("Config file %s has not been found\n", nedgeConfigFile)
+		return config, fmt.Errorf("Config file %s has not been found\n", nedgeConfigFile)
+	}
+
 	content, err := ioutil.ReadFile(nedgeConfigFile)
 	if err != nil {
 		err = fmt.Errorf("error reading config file: %s error: %s\n", nedgeConfigFile, err)
@@ -47,7 +53,6 @@ func ReadParseConfig() (config NedgeClusterConfig, err error) {
 		return config, err
 	}
 
-	config.ServiceFilterMap = make(map[string]bool)
 	return config, nil
 }
 
