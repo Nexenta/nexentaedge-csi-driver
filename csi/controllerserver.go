@@ -3,8 +3,6 @@ package csi
 import (
 	"fmt"
 
-	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
-
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
@@ -17,12 +15,6 @@ import (
 
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
-}
-
-func nedgeVolumeToCSIVolume(volume *csi.Volume, nedgeVolume *nedgeprovider.NedgeNFSVolume) {
-	volume.Id = nedgeVolume.VolumeID
-	volume.Attributes = make(map[string]string)
-	volume.Attributes["share"] = nedgeVolume.Share
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
@@ -40,11 +32,19 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	params := req.GetParameters()
-	service := params["service"]
-	cluster := params["cluster"]
-	tenant := params["tenant"]
+	volumePath := ""
+	if service, ok := params["service"]; ok {
+		volumePath += fmt.Sprintf("%s@", service)
+	}
 
-	volumeID := fmt.Sprintf("%s@%s/%s/%s", service, cluster, tenant, volumeName)
+	if cluster, ok := params["cluster"]; ok {
+		volumePath += fmt.Sprintf("%s/", cluster)
+	}
+
+	if tenant, ok := params["tenant"]; ok {
+		volumePath += fmt.Sprintf("%s/", tenant)
+	}
+	volumePath += volumeName
 
 	// CreateVolume response
 	resultVolume := &csi.Volume{}
@@ -52,42 +52,16 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		Volume: resultVolume,
 	}
 
-	/*
-		volumeID, err := nedgeprovider.ParseVolumeID(volumeName)
-		if err != nil {
-			log.Infof("Failed to GetVolumeID(%s): %v", volumeID, err)
-			return nil, err
-		}
-	*/
-
-	nedgeVolume, err := nedge.GetVolume(volumeID)
-	//volume already exists, returns
-	if nedgeVolume != nil {
-		nedgeVolumeToCSIVolume(resultVolume, nedgeVolume)
-		return resp, nil
-	}
-
-	// get params from command params
-	//service := req.GetParameters()["service"]
-	//cluster := req.GetParameters()["cluster"]
-	//tenant := req.GetParameters()["tenant"]
-
 	// Volume Create
-	log.Info("Creating volume: ", volumeID)
-	err = nedge.CreateVolume(volumeID, 100)
+	log.Info("Creating volume: ", volumePath)
+	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
 	if err != nil {
 		log.Infof("Failed to CreateVolume: %v", err)
 		return nil, err
 	}
 
-	newNedgeVolume, err := nedge.GetVolume(volumeID)
-	if newNedgeVolume == nil {
-		log.Infof("Failed to get created volume by name, %v", err)
-		return nil, err
-	}
-
 	// Return information on existing volume
-	nedgeVolumeToCSIVolume(resultVolume, newNedgeVolume)
+	resultVolume.Id = newVolumeID
 	return resp, nil
 }
 
@@ -107,10 +81,12 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 	}
 
 	// If the volume is not found, then we can return OK
-	if nedge.IsVolumeExist(volumeID) == false {
-		log.Infof("DeleteVolume:IsVolumeExist volume %s does not exist", volumeID)
-		return &csi.DeleteVolumeResponse{}, nil
-	}
+	/*
+		if nedge.IsVolumeExist(volumeID) == false {
+			log.Infof("DeleteVolume:IsVolumeExist volume %s does not exist", volumeID)
+			return &csi.DeleteVolumeResponse{}, nil
+		}
+	*/
 
 	err = nedge.DeleteVolume(volumeID)
 	if err != nil {
@@ -163,9 +139,8 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 	for i, v := range volumes {
 		// Initialize entry
 		entries[i] = &csi.ListVolumesResponse_Entry{
-			Volume: &csi.Volume{},
+			Volume: &csi.Volume{Id: v.VolumeID.FullObjectPath()},
 		}
-		nedgeVolumeToCSIVolume(entries[i].Volume, &v)
 	}
 
 	return &csi.ListVolumesResponse{

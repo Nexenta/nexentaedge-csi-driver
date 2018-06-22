@@ -14,16 +14,16 @@ const defaultChunkSize int = 1048576
 
 /*INexentaEdge interface to provide base methods */
 type INexentaEdge interface {
-	CreateVolume(volumeName string, size int, options map[string]string) error
+	CreateVolume(volumeName string, size int, options map[string]string) (string, error)
 	DeleteVolume(volumeID string) error
 	ListVolumes() ([]nedgeprovider.NedgeNFSVolume, error)
 	CheckNfsServiceExists(serviceName string) error
 	IsClusterExists(clusterName string) bool
 	IsTenantExists(clusterName string, tenantName string) bool
 	//IsVolumeExist(volumeID string) bool
-	//GetVolume(volumeName string) (volume *nedgeprovider.NedgeNFSVolume, err error)
+	//GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error)
 	//GetVolumeID(volumeName string) (volumeID string, err error)
-	GetClusterData(serviceName ...string) (ClusterData, error)
+	GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error)
 }
 
 type NexentaEdge struct {
@@ -148,7 +148,7 @@ func IsNoServiceSpecified(missedParts map[string]bool) bool {
 }
 
 /*CreateVolume creates bucket and serve it via nexentaedge service*/
-func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string]string) (err error) {
+func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string]string) (volumeID string, err error) {
 	// get first service from list, should be changed later
 
 	configMap := nedge.PrepareConfigMap()
@@ -157,11 +157,11 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 		// Only service missed in path notation, we should select appropriate service for new volume
 		if IsNoServiceSpecified(missedPathParts) {
-			log.Infof("No service cpecified!")
+			log.Infof("No service specified!")
 			// get all services information to find service by path
 			clusterData, err := nedge.GetClusterData()
 			if err != nil {
-				return err
+				return "", err
 			}
 
 			// find service to serve
@@ -169,7 +169,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 			log.Infof("Appropriate service is : %+v\n", appropriateServiceData)
 			if err != nil {
 				log.Infof("Appropriate service selection failed : %s\n", err)
-				return err
+				return "", err
 			}
 
 			// assign aprppriate service name to VolumeID
@@ -177,7 +177,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 		} else {
 			log.Errorf("ParseVolumeID error : %s\n", err)
-			return err
+			return "", err
 		}
 	}
 
@@ -185,17 +185,17 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	err = nedge.CheckNfsServiceExists(volID.Service)
 	if err != nil {
 		log.Error(err)
-		return err
+		return "", err
 	}
 
 	// check for cluster name existance
 	if !nedge.IsClusterExists(volID.Cluster) {
-		return fmt.Errorf("No cluster name %s found", volID.Cluster)
+		return "", fmt.Errorf("No cluster name %s found", volID.Cluster)
 	}
 
 	// check for tenant name existance
 	if !nedge.IsTenantExists(volID.Cluster, volID.Tenant) {
-		return fmt.Errorf("No cluster/tenant name %s/%s found", volID.Cluster, volID.Tenant)
+		return "", fmt.Errorf("No cluster/tenant name %s/%s found", volID.Cluster, volID.Tenant)
 	}
 
 	log.Info("Creating bucket")
@@ -205,7 +205,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		err := nedge.provider.CreateBucket(volID.Cluster, volID.Tenant, volID.Bucket, 0, options)
 		if err != nil {
 			log.Error(err)
-			return err
+			return "", err
 		}
 	}
 
@@ -214,7 +214,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		err = nedge.provider.SetBucketQuota(volID.Cluster, volID.Tenant, volID.Bucket, quota)
 		if err != nil {
 			log.Error(err)
-			return err
+			return "", err
 		}
 	}
 
@@ -231,7 +231,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		log.Error(err)
 	}
 
-	return err
+	return volID.FullObjectPath(), err
 }
 
 /*DeleteVolume remotely deletes bucket on nexentaedge service*/
@@ -244,7 +244,7 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 	if err != nil {
 		// Only service missed in path notation, we should select appropriate service for new volume
 		if IsNoServiceSpecified(missedPathParts) {
-			log.Infof("No service cpecified!")
+			log.Infof("No service specified!")
 			// get all services information to find service by path
 			clusterData, err = nedge.GetClusterData()
 			if err != nil {
@@ -360,6 +360,31 @@ func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume,
 	return volumes, nil
 }
 
+/* returns ClusterData by raw volumeID string */
+func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error) {
+	var clusterData ClusterData
+	configMap := nedge.PrepareConfigMap()
+	volID, missedPathParts, err := nedgeprovider.ParseVolumeID(volumeID, configMap)
+	if err != nil {
+		// Only service missed in path notation, we should select appropriate service for new volume
+		if IsNoServiceSpecified(missedPathParts) {
+			log.Infof("No service specified!")
+			// get all services information to find service by path
+			clusterData, err = nedge.GetClusterData()
+			if err != nil {
+				return volID, clusterData, err
+			}
+		}
+	} else {
+		clusterData, err = nedge.GetClusterData(volID.Service)
+		if err != nil {
+			return volID, clusterData, err
+		}
+	}
+
+	return volID, clusterData, err
+}
+
 /*GetClusterData if serviceName specified we will get data from the one service only */
 func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, error) {
 
@@ -372,20 +397,6 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 	} else {
 		services, err = nedge.ListServices()
 	}
-
-	/*
-	   services := []nedgeprovider.NedgeService{}
-	   if len(serviceName) > 0 {
-	       service, retError := nedge.provider.GetService(serviceName[0])
-	       if retError != nil {
-	           log.Error("Failed to retrieve service by name ", serviceName[0])
-	           return clusterData, err
-	       }
-	       services = append(services, service)
-	   } else {
-	       services, err = nedge.ListServices()
-	   }
-	*/
 
 	if err != nil {
 		log.Panic("Failed to retrieve service list", err)

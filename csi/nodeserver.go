@@ -1,11 +1,9 @@
 package csi
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
-	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
@@ -22,15 +20,14 @@ type nodeServer struct {
 }
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	log.Infof("NodeGetId req[%#v]", req)
+	log.Infof("NodeGetId req[%#v]\n", req)
 	// Using default function
 	log.Info("NodeGetId invoked")
 	return ns.DefaultNodeServer.NodeGetId(ctx, req)
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	log.Infof("NodePublishVolume req[%#v]", req)
-	//service := req.GetVolumeAttributes()["service"]
+	log.Infof("NodePublishVolume req[%#v]\n", req)
 	log.Info("NodePublishVolume:InitNexentaEdge")
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
@@ -50,16 +47,21 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.InvalidArgument, "Target path must be provided")
 	}
 
-	volID, err := nedgeprovider.ParseVolumeID(volumeID)
+	volID, clusterData, err := nedge.GetClusterDataByVolumeID(volumeID)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "Can't get cluster information by volumeID:%s, Error:%s", volumeID, err)
 	}
 
-	nedgeVolume, err := nedge.GetVolume(volumeID)
-	log.Info("NodePublishVolume:GetVolume volume is %+v\n", nedgeVolume)
-	if nedgeVolume == nil {
-		log.Infof("No %s volume found for volumeID: %s ", volumeID)
-		return nil, status.Errorf(codes.NotFound, "Volume id %s not found", volumeID)
+	// find service to serve
+	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
+	log.Infof("Service is : %+v\n", serviceData)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "Can't find service data by VolumeID:%s Error:%s", volID, err)
+	}
+
+	nfsVolume, nfsEndpoint, err := serviceData.GetNFSVolumeAndEndpoint(volID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "Can't find NFS Volume or endpoint by VolumeID:%s Error:%s", volID, err)
 	}
 
 	mounter := mount.New("")
@@ -76,20 +78,14 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if !notMnt {
-		log.Info("notMnt is False skipping")
+		log.Info("notMnt is False skipping\n")
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	dataIP, err := nedge.GetDataIP(volID.Service)
-	if err != nil {
-		log.Infof("Get DataIP error %s\n", err)
-		return nil, err
-	}
+	log.Infof("Publishing nfs volume %+v\n", nfsVolume)
+	log.Infof("NexentaEdge export %s endpoint is %s\n", volID.FullObjectPath(), nfsEndpoint)
 
-	source := fmt.Sprintf("%s:%s", dataIP, nedgeVolume.Share)
-	log.Infof("NexentaEdge export %s endpoint is %s", volumeID, source)
-
-	err = mounter.Mount(source, targetPath, "nfs", nil)
+	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nil)
 	if err != nil {
 		if os.IsPermission(err) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -100,12 +96,12 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Infof("NodePublishVolume invoked: volumeID: %s, targetPath: %s, endpoint: %s", volumeID, targetPath, source)
+	log.Infof("NodePublishVolume invoked: volumeID: %s, targetPath: %s, endpoint: %s\n", volID, targetPath, nfsEndpoint)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	log.Infof("NodeUnpublishVolume req[%#v]", req)
+	log.Infof("NodeUnpublishVolume req[%#v]\n", req)
 
 	targetPath := req.GetTargetPath()
 	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)

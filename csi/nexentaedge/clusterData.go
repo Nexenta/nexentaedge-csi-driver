@@ -16,12 +16,6 @@ type ClusterData struct {
 	nfsServicesData []NfsServiceData
 }
 
-/*
-func (cluster *ClusterData) IsStandAloneCluster() bool {
-	return cluster.isStandAloneCluster
-}
-*/
-
 func (nfsServiceData *NfsServiceData) FindNFSVolumeByVolumeID(volumeID nedgeprovider.VolumeID) (resultNfsVolume nedgeprovider.NedgeNFSVolume, err error) {
 
 	for _, nfsVolume := range nfsServiceData.NfsVolumes {
@@ -94,7 +88,7 @@ func (clusterData ClusterData) FillNfsVolumes(vmap map[string]string, defaultClu
 	}
 }
 
-/* FindNfsServiceData finfs and returns pointer to NfsServiceData stored in ClusterData */
+/* FindNfsServiceData finds and returns pointer to NfsServiceData stored in ClusterData */
 func (clusterData ClusterData) FindNfsServiceData(serviceName string) (serviceData *NfsServiceData, err error) {
 	for _, serviceData := range clusterData.nfsServicesData {
 		if serviceData.Service.Name == serviceName {
