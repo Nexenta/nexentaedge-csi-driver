@@ -51,10 +51,11 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't get cluster information by volumeID:%s, Error:%s", volumeID, err)
 	}
+	log.Infof("VolumeID: %s \nClusterData: %+v\n", volumeID, clusterData)
 
 	// find service to serve
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
-	log.Infof("Service is : %+v\n", serviceData)
+	log.Infof("Finded ServiceData by volume %+v is : %+v\n", volID, serviceData)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't find service data by VolumeID:%s Error:%s", volID, err)
 	}

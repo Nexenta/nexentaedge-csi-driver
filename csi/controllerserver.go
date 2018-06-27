@@ -128,7 +128,7 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
-		log.Fatal("Failed to get NexentaEdge instance")
+		log.Fatalf("Failed to get NexentaEdge instance. Error:", err)
 		return nil, err
 	}
 

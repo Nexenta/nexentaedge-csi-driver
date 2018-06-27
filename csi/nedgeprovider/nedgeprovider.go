@@ -253,6 +253,11 @@ func (nedge *NexentaEdgeProvider) GetService(serviceName string) (service NedgeS
 	path := fmt.Sprintf("service/%s", serviceName)
 	body, err := nedge.doNedgeRequest("GET", path, nil)
 
+	if err != nil {
+		log.Error(err)
+		return service, err
+	}
+
 	r := make(map[string]map[string]interface{})
 	jsonerr := json.Unmarshal(body, &r)
 

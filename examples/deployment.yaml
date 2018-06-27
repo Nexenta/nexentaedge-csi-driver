@@ -33,22 +33,31 @@ spec:
       operator: In
       values: ["csi-nedge-pv"]
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: nginx
+  name: nginx-deployment
+  labels:
+    app: nginx
 spec:
-  containers:
-  - image: maersk/nginx
-    imagePullPolicy: Always
-    name: nginx
-    ports:
-    - containerPort: 80
-      protocol: TCP
-    volumeMounts:
-      - mountPath: /var/www
-        name: csi-volume
-  volumes:
-  - name: csi-volume
-    persistentVolumeClaim:
-      claimName: csi-nedge-pvc
+  replicas: 10
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: maersk/nginx
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - mountPath: /var/www
+          name: csi-volume
+      volumes:
+      - name: csi-volume
+        persistentVolumeClaim:
+          claimName: csi-nedge-pvc

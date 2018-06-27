@@ -4,41 +4,61 @@ package main
 import (
 	"fmt"
 
-	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
+//	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 )
 
+func ListVolumes(nedge nexentaedge.INexentaEdge) {
+	volumes, err := nedge.ListVolumes()
+        if err != nil {
+                fmt.Printf("Failed to ListVolumes: %s\n", err)
+                return
+        }
+
+        fmt.Printf("Volumes  : %+v\n", volumes)
+}
+
+func CreateVolume(nedge nexentaedge.INexentaEdge, volumeID string) {
+        volID, err := nedge.CreateVolume(volumeID, 0, make(map[string]string))
+        if err != nil {
+                fmt.Printf("Failed to CreateVolume: %s\n", err)
+                return
+        }
+	fmt.Printf("Created VolumeID  : %+v\n", volID)
+}
+
+func DeleteVolume(nedge nexentaedge.INexentaEdge, volumeID string) {
+        err := nedge.DeleteVolume(volumeID)
+        if err != nil {
+                fmt.Printf("Failed to DeleteVolume: %s\n", err)
+                return
+        }
+}
+
+
 func main() {
 
-	clusterIP := "10.3.199.201"
-	clusterPort := int16(8080)
-	user := "admin"
-	password := "nexenta"
-
-	var NfsServices []nexentaedge.NedgeK8sService
-	nedge := nedgeprovider.InitNexentaEdgeProvider(clusterIP, clusterPort, user, password)
-	err := nedge.CheckHealth()
+	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
-		fmt.Printf("Failed to CheckHealth: %s", err)
-		return
-	}
+                fmt.Printf("Failed to InitNexentaEdge: %s\n", err)
+                return
+        }
 
-	services, err := nedge.ListServices()
+
+	fmt.Printf("nedge  : %+v\n", nedge)
+
+	ListVolumes(nedge)
+	/*
+	cluData, err := nedge.GetClusterData()
 	if err != nil {
                 fmt.Printf("Failed to ListServices: %s", err)
                 return
         }
+	*/
 
-	fmt.Printf("Services: %+v\n", services)
-	
-	for _, service := range services {
-		if service.ServiceType == "nfs" && service.Status == "enabled" {
-			/*TODO Fix NedgeK8Service to support multiple service IPs */
-			newService := nexentaedge.NedgeK8sService{Name: service.Name, ClusterIP: service.Network[0]}
-			NfsServices = append(NfsServices, newService)
-		}
-	}
-
-	fmt.Printf("Available nfs Services: %+v\n", NfsServices)
-
+	volumeID := "ten1/buk1"
+	CreateVolume(nedge, volumeID)
+	ListVolumes(nedge)
+	DeleteVolume(nedge, volumeID)
+	ListVolumes(nedge)
 }

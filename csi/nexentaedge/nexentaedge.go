@@ -363,6 +363,7 @@ func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume,
 /* returns ClusterData by raw volumeID string */
 func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error) {
 	var clusterData ClusterData
+	log.Infof("GetClusterDataByVolumeID: %s\n", volumeID)
 	configMap := nedge.PrepareConfigMap()
 	volID, missedPathParts, err := nedgeprovider.ParseVolumeID(volumeID, configMap)
 	if err != nil {
@@ -376,6 +377,7 @@ func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovid
 			}
 		}
 	} else {
+		log.Infof("GetClusterDataByVolumeID.GetClusterData: by service: %s\n", volID.Service)
 		clusterData, err = nedge.GetClusterData(volID.Service)
 		if err != nil {
 			return volID, clusterData, err
@@ -392,15 +394,26 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 	var err error
 
 	var services []nedgeprovider.NedgeService
-	if len(serviceName) > 0 {
-		services, err = nedge.ListServices(serviceName[0])
-	} else {
-		services, err = nedge.ListServices()
+
+	services, err = nedge.ListServices()
+	if err != nil {
+                log.Panic("Failed to retrieve service list", err)
+                return clusterData, err
 	}
 
-	if err != nil {
-		log.Panic("Failed to retrieve service list", err)
-		return clusterData, err
+	if len(serviceName) > 0 {
+		serviceFound := false
+		for _, service := range services {
+			if service.Name == serviceName[0] {
+				services = []nedgeprovider.NedgeService{service}
+				serviceFound = true
+				break
+			}
+		}
+		if serviceFound != true {
+			log.Errorf("No service %s found in NexentaEdge cluster.\n", serviceName[0])
+			return clusterData, fmt.Errorf("No service %s found in NexentaEdge cluster.", serviceName[0])
+		}
 	}
 
 	for _, service := range services {
