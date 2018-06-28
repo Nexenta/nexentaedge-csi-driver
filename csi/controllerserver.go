@@ -2,6 +2,7 @@ package csi
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -32,6 +33,15 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	params := req.GetParameters()
+
+	log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
+	if req.CapacityRange != nil {
+		if req.CapacityRange.LimitBytes > 0 {
+			params["size"]= strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
+			log.Infof("New params: %+v\n", params)
+		}
+	}
+
 	volumePath := ""
 	if service, ok := params["service"]; ok {
 		volumePath += fmt.Sprintf("%s@", service)
