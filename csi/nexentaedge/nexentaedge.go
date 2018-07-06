@@ -116,7 +116,8 @@ func (nedge *NexentaEdge) CheckNfsServiceExists(serviceName string) error {
 		return fmt.Errorf("Service %s is not nfs type service", nedgeService.Name)
 	}
 
-	if len(nedgeService.Network) < 1 {
+	// in case of In-Cluster nedge configuration, there is no network configured
+	if nedge.isStandAloneCluster && len(nedgeService.Network) < 1 {
 		return fmt.Errorf("Service %s isn't configured, no client network assigned", nedgeService.Name)
 	}
 
@@ -310,12 +311,14 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 			services, err = nedge.provider.ListServices()
 		}
 	} else {
+		//log.Infof("List k8s services for NExentaEdge\n")
 		if len(serviceName) > 0 {
 			service, err = nedge.GetK8sNedgeService(serviceName[0])
 			services = append(services, service)
 		} else {
 			services, err = GetNedgeK8sClusterServices()
 		}
+		//log.Infof("Service list %+v\n", services)
 	}
 
 	if err != nil {

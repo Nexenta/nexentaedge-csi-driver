@@ -1,5 +1,4 @@
 {
-	"name": "NedgeCluster",
 	"nedgerest": "10.3.199.201",
 	"nedgeport": "8080",
 	"cluster": "clu1",

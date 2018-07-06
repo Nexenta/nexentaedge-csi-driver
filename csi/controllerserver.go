@@ -34,8 +34,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	params := req.GetParameters()
 
-	log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
 	if req.CapacityRange != nil {
+		log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"]= strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
 			log.Infof("New params: %+v\n", params)

@@ -176,13 +176,14 @@ func GetNedgeK8sClusterServices() (services []nedgeprovider.NedgeService, err er
 		serviceClusterIP := svc.Spec.ClusterIP
 
 		if strings.HasPrefix(serviceName, K8sNedgeNfsPrefix) {
+			//log.Infof("Adding service %s\n", serviceName)
 			nfsSvcName := strings.TrimPrefix(serviceName, K8sNedgeNfsPrefix)
 			serviceNetwork := []string{serviceClusterIP}
 
-			newService := nedgeprovider.NedgeService{Name: nfsSvcName, ServiceType: "nfs", Status: "active", Network: serviceNetwork}
+			newService := nedgeprovider.NedgeService{Name: nfsSvcName, ServiceType: "nfs", Status: "enabled", Network: serviceNetwork}
 			services = append(services, newService)
 		}
 	}
-
+	//log.Infof("K8S Nedge services : %+v\n", services)
 	return services, err
 }
