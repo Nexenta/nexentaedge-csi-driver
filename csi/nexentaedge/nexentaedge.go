@@ -40,6 +40,7 @@ type NedgeClusterConfig struct {
 	Username            string
 	Password            string
 	Cluster             string
+	Tenant		    string
 	ForceBucketDeletion bool            `json:"forceBucketDeletion"`
 	ServiceFilter       string          `json:"serviceFilter"`
 	ServiceFilterMap    map[string]bool `json:"-"`
@@ -134,6 +135,10 @@ func (nedge *NexentaEdge) PrepareConfigMap() map[string]string {
 	if nedge.clusterConfig.Cluster != "" {
 		configMap["cluster"] = nedge.clusterConfig.Cluster
 	}
+
+	if nedge.clusterConfig.Tenant != "" {
+                configMap["tenant"] = nedge.clusterConfig.Tenant
+        }
 
 	return configMap
 }
