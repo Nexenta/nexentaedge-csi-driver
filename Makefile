@@ -1,6 +1,6 @@
 PLUGIN_NAME=nexentaedge-csi-plugin
 IMAGE_NAME=$(PLUGIN_NAME)
-REGISTRY=10.3.30.75:5000
+REGISTRY=nexenta
 IMAGE_TAG=latest
 
 .PHONY: all nfs 
