@@ -14,7 +14,7 @@ spec:
     storage: 1Gi
   csi:
     driver: nexentaedge-csi-plugin
-    volumeHandle: ten1/csi-fullPath
+    volumeHandle: clus1/ten1/buk1
 
 ---
 apiVersion: v1
