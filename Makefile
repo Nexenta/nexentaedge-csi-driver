@@ -1,5 +1,6 @@
 PLUGIN_NAME=nexentaedge-csi-plugin
 IMAGE_NAME=$(PLUGIN_NAME)
+DOCKER_FILE=Dockerfile.centos7
 REGISTRY=nexenta
 IMAGE_TAG=latest
 
@@ -14,7 +15,7 @@ nfs:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o bin/$(PLUGIN_NAME) ./app
 
 build-container: nfs 
-	docker build -t $(IMAGE_NAME) .
+	docker build -f $(DOCKER_FILE) -t $(IMAGE_NAME) .
 
 push-container: build-container
 	docker tag  $(IMAGE_NAME) $(REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)

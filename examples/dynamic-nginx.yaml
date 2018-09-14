@@ -7,8 +7,6 @@ metadata:
   name: csi-sc-nedgeplugin
 provisioner: nexentaedge-csi-plugin
 parameters:
-  tenant: ten1
-  name: test
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
