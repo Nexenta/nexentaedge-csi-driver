@@ -33,7 +33,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	params := req.GetParameters()
-	// prevent null pointer ref if no parameters passed
+	// prevent null poiner if no parameters passed
 	if params == nil {
 		params = make(map[string]string)
 	}

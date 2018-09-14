@@ -83,7 +83,6 @@ func InitNexentaEdgeProvider(restip string, port int16, username string, passwor
 	log.Infof("LOGGER LEVEL IS: %s\n", loggerLevel.String())
 
 	if nexentaEdgeProviderInstance == nil {
-		//log.Info("InitNexentaEdgeProvider initialization")
 
 		nexentaEdgeProviderInstance = &NexentaEdgeProvider{
 			endpoint: fmt.Sprintf("http://%s:%d/", restip, port),

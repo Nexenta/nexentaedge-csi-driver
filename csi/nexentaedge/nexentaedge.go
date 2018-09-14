@@ -1,6 +1,7 @@
 package nexentaedge
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,7 +11,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const defaultChunkSize int = 1048576
+const (
+	defaultChunkSize int    = 1048576
+	xorKey           string = "#o$3dfMJd@#4_;sdf789G%$789Slpo(Zv~"
+	defaultUserName  string = "admin"
+	defaultPassword  string = "TQpcVgoSLA=="
+)
 
 /*INexentaEdge interface to provide base methods */
 type INexentaEdge interface {
@@ -40,13 +46,23 @@ type NedgeClusterConfig struct {
 	Username            string
 	Password            string
 	Cluster             string
-	Tenant		    string
+	Tenant              string
 	ForceBucketDeletion bool            `json:"forceBucketDeletion"`
 	ServiceFilter       string          `json:"serviceFilter"`
 	ServiceFilterMap    map[string]bool `json:"-"`
 }
 
 var NexentaEdgeInstance INexentaEdge
+
+/* Method to XOR input password string */
+func EncryptDecrypt(input string) (output string) {
+	key := xorKey
+	for i := 0; i < len(input); i++ {
+		output += string(input[i] ^ key[i%len(key)])
+	}
+
+	return output
+}
 
 /*InitNexentaEdge reads config and discovers Nedge clusters*/
 func InitNexentaEdge() (nedge INexentaEdge, err error) {
@@ -59,8 +75,17 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 
 	config, err = ReadParseConfig()
 	if err != nil {
-		err = fmt.Errorf("Error reading config file %s \nError: %s\n", nedgeConfigFile, err)
+		err = fmt.Errorf("failed to read config file %s Error: %s", nedgeConfigFile, err)
+		log.Infof("%+", err)
 		return nil, err
+	}
+
+	if len(config.Username) == 0 {
+		config.Username = defaultUserName
+	}
+
+	if len(config.Password) == 0 {
+		config.Username = defaultPassword
 	}
 
 	config.ServiceFilterMap = make(map[string]bool)
@@ -78,7 +103,7 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 		if isClusterExists {
 			isStandAloneCluster = false
 		} else {
-			return nil, fmt.Errorf("No NexentaEdge Cluster has been found\n")
+			return nil, fmt.Errorf("No NexentaEdge Cluster has been found")
 		}
 	}
 
@@ -89,7 +114,18 @@ func InitNexentaEdge() (nedge INexentaEdge, err error) {
 		clusterPort = int16(i)
 	}
 
-	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.Username, config.Password)
+	/* Decode from BASE64 nexentaEdge REST password */
+	passwordData, err := base64.StdEncoding.DecodeString(config.Password)
+	if err != nil {
+		err = fmt.Errorf("failed to decode password. error %+v", err)
+		log.Info(err)
+		return nil, err
+	}
+
+	// XOR password data to plain REST password */
+	configPassword := EncryptDecrypt(string(passwordData[:]))
+
+	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.Username, configPassword)
 	err = provider.CheckHealth()
 	if err != nil {
 		log.Infof("InitNexentaEdge failed during CheckHealth : %+v\n", err)
@@ -137,8 +173,8 @@ func (nedge *NexentaEdge) PrepareConfigMap() map[string]string {
 	}
 
 	if nedge.clusterConfig.Tenant != "" {
-                configMap["tenant"] = nedge.clusterConfig.Tenant
-        }
+		configMap["tenant"] = nedge.clusterConfig.Tenant
+	}
 
 	return configMap
 }
@@ -405,8 +441,8 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 
 	services, err = nedge.ListServices()
 	if err != nil {
-                log.Panic("Failed to retrieve service list", err)
-                return clusterData, err
+		log.Panic("Failed to retrieve service list", err)
+		return clusterData, err
 	}
 
 	if len(serviceName) > 0 {
