@@ -1,0 +1,10 @@
+FROM centos:centos7
+
+RUN yum -y install nfs-utils
+RUN mkdir -p /etc/
+RUN mkdir -p /config/
+
+COPY ./bin/csc /csc
+COPY ./bin/nexentaedge-csi-plugin /nexentaedge-csi-plugin
+
+ENTRYPOINT ["/nexentaedge-csi-plugin"]
