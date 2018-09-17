@@ -3,6 +3,7 @@ package csi
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -18,7 +19,15 @@ type controllerServer struct {
 	*csicommon.DefaultControllerServer
 }
 
+func elapsed(what string) func() {
+	start := time.Now()
+	return func() {
+		log.Printf("%s took %v\n", what, time.Since(start))
+	}
+}
+
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
+	defer elapsed("ControllerCreateVolume method")()
 	log.Infof("CreateVolume req[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
@@ -80,6 +89,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+	defer elapsed("ControllerDeleteVolume method")()
 	log.Infof("DeleteVolume req[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()

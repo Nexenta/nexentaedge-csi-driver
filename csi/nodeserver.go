@@ -27,6 +27,7 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+	defer elapsed("NodePublishVolume method")()
 	log.Infof("NodePublishVolume req[%#v]\n", req)
 	log.Info("NodePublishVolume:InitNexentaEdge")
 	nedge, err := nexentaedge.InitNexentaEdge()
@@ -102,6 +103,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 }
 
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+	defer elapsed("NodeUnpublishVolume method")()
 	log.Infof("NodeUnpublishVolume req[%#v]\n", req)
 
 	targetPath := req.GetTargetPath()
