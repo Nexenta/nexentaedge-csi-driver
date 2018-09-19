@@ -68,7 +68,7 @@ func EncryptDecrypt(input string) (output string) {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Printf("%s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement %s took %v\n", what, time.Since(start))
 	}
 }
 
