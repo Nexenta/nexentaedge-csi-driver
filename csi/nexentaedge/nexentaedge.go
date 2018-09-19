@@ -204,32 +204,40 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 	configMap := nedge.PrepareConfigMap()
 	volID, missedPathParts, err := nedgeprovider.ParseVolumeID(name, configMap)
+
+	// throws error when can't substitute volume fill path, no service isn't error
+	if err != nil && !IsNoServiceSpecified(missedPathParts) {
+		log.Errorf("ParseVolumeID error : %+v\n", err)
+		return "", err
+	}
+
+	// get all services information to find already existing volume by path
+	clusterData, err := nedge.GetClusterData()
 	if err != nil {
+		return "", err
+	}
 
-		// Only service missed in path notation, we should select appropriate service for new volume
-		if IsNoServiceSpecified(missedPathParts) {
-			log.Infof("No service specified!")
-			// get all services information to find service by path
-			clusterData, err := nedge.GetClusterData()
-			if err != nil {
-				return "", err
-			}
+	//try to find already existing service with specified volumeID
+	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
+	if err == nil && serviceData != nil {
+		log.Warningf("Volume %s already exists via %s service", volID.FullObjectPath(), serviceData.Service.Name)
+		// returns no error because volume already exists
+		return volID.FullObjectPath(), nil
+	}
 
-			// find service to serve
-			appropriateServiceData, err := clusterData.FindApropriateServiceData()
-			log.Infof("Appropriate service is : %+v\n", appropriateServiceData)
-			if err != nil {
-				log.Infof("Appropriate service selection failed : %s\n", err)
-				return "", err
-			}
+	// When service name is missed in path notation, we should select appropriate service for new volume
+	if IsNoServiceSpecified(missedPathParts) {
 
-			// assign aprppriate service name to VolumeID
-			volID.Service = appropriateServiceData.Service.Name
-
-		} else {
-			log.Errorf("ParseVolumeID error : %s\n", err)
+		// find apropriate service to serve
+		appropriateServiceData, err := clusterData.FindApropriateServiceData()
+		log.Infof("Appropriate service is : %+v\n", appropriateServiceData)
+		if err != nil {
+			log.Infof("Appropriate service selection failed : %+v\n", err)
 			return "", err
 		}
+
+		// assign appropriate service name to VolumeID
+		volID.Service = appropriateServiceData.Service.Name
 	}
 
 	log.Infof("VolumeID : %+v", volID)
@@ -252,7 +260,6 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	log.Info("Creating bucket")
 	if !nedge.provider.IsBucketExist(volID.Cluster, volID.Tenant, volID.Bucket) {
 		log.Info("Bucket doesnt exist")
-
 		err := nedge.provider.CreateBucket(volID.Cluster, volID.Tenant, volID.Bucket, 0, options)
 		if err != nil {
 			log.Error(err)
@@ -280,6 +287,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	err = nedge.provider.ServeBucket(volID.Service, volID.Cluster, volID.Tenant, volID.Bucket)
 	if err != nil {
 		log.Error(err)
+		return "", err
 	}
 
 	return volID.FullObjectPath(), err
