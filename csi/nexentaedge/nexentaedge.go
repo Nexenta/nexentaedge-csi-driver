@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
 	log "github.com/sirupsen/logrus"
@@ -64,9 +65,16 @@ func EncryptDecrypt(input string) (output string) {
 	return output
 }
 
+func elapsed(what string) func() {
+	start := time.Now()
+	return func() {
+		log.Printf("%s took %v\n", what, time.Since(start))
+	}
+}
+
 /*InitNexentaEdge reads config and discovers Nedge clusters*/
 func InitNexentaEdge() (nedge INexentaEdge, err error) {
-
+	defer elapsed("NexentaEdge::InitNexentaEdge")
 	var config NedgeClusterConfig
 	var provider nedgeprovider.INexentaEdgeProvider
 	isStandAloneCluster := true
@@ -191,6 +199,7 @@ func IsNoServiceSpecified(missedParts map[string]bool) bool {
 
 /*CreateVolume creates bucket and serve it via nexentaedge service*/
 func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string]string) (volumeID string, err error) {
+	defer elapsed("NexentaEdge::CreateVolume")
 	// get first service from list, should be changed later
 
 	configMap := nedge.PrepareConfigMap()
@@ -278,6 +287,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 /*DeleteVolume remotely deletes bucket on nexentaedge service*/
 func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
+	defer elapsed("NexentaEdge::DeleteVolume")
 	log.Info("NexentaEdgeProvider:DeleteVolume  VolumeID: ", volumeID)
 
 	var clusterData ClusterData
@@ -341,7 +351,7 @@ func (nedge *NexentaEdge) GetK8sNedgeService(serviceName string) (resultService 
 }
 
 func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []nedgeprovider.NedgeService, err error) {
-
+	defer elapsed("NexentaEdge::ListServices")
 	var service nedgeprovider.NedgeService
 	var services []nedgeprovider.NedgeService
 	if nedge.isStandAloneCluster == true {
@@ -385,6 +395,7 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 
 /*ListVolumes list all available volumes */
 func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume, err error) {
+	defer elapsed("NexentaEdge::ListVolumes")
 	log.Info("NexentaEdgeProvider ListVolumes: ")
 
 	//already filtered services with serviceFilter, service type e.t.c.
