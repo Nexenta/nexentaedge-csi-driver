@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -29,6 +30,13 @@ type NedgeService struct {
 	ServiceType string
 	Status      string
 	Network     []string
+}
+
+func elapsed(what string) func() {
+	start := time.Now()
+	return func() {
+		log.Infof("::NedgeProvidererMeasurement %s took %v\n", what, time.Since(start))
+	}
 }
 
 func (nedgeService *NedgeService) FindNFSVolumeByVolumeID(volumeID string, nfsVolumes []NedgeNFSVolume) (resultNfsVolume NedgeNFSVolume, err error) {
@@ -142,7 +150,7 @@ option parameters:
 	acl: 		string with nedge acl restrictions for bucket
 */
 func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName string, bucketName string, size int, options map[string]string) (err error) {
-
+	defer elapsed("CreateBucket")
 	path := fmt.Sprintf("clusters/%s/tenants/%s/buckets", clusterName, tenantName)
 
 	data := make(map[string]interface{})
@@ -196,6 +204,7 @@ func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName st
 }
 
 func (nedge *NexentaEdgeProvider) DeleteBucket(cluster string, tenant string, bucket string, force bool) (err error) {
+	defer elapsed("DeleteBucket")
 
 	if force == true {
 		path := fmt.Sprintf("clusters/%s/tenants/%s/buckets/%s?expunge=1&async=1", cluster, tenant, bucket)
@@ -429,6 +438,7 @@ func (nedge *NexentaEdgeProvider) ListNFSVolumes(serviceName string) (nfsVolumes
 }
 
 func (nedge *NexentaEdgeProvider) ServeBucket(service string, cluster string, tenant string, bucket string) (err error) {
+	defer elapsed("ServeBucket")
 	path := fmt.Sprintf("service/%s/serve", service)
 	serve := fmt.Sprintf("%s/%s/%s", cluster, tenant, bucket)
 
