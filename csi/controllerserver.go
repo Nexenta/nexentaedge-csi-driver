@@ -27,8 +27,8 @@ func elapsed(what string) func() {
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	defer elapsed("ControllerCreateVolume method")()
-	log.Infof("CreateVolume req[%+v]", *req)
+	defer elapsed("ControllerServer::CreateVolume method")()
+	log.Infof("CreateVolume request[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
@@ -48,7 +48,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	if req.CapacityRange != nil {
-		log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
+		//log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
 			log.Infof("New params: %+v\n", params)
@@ -76,7 +76,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	// Volume Create
-	log.Info("Creating volume: ", volumePath)
+	log.Info("ControllerServer::CreateVolume : ", volumePath)
 	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
 	if err != nil {
 		log.Infof("Failed to CreateVolume: %v", err)
@@ -89,8 +89,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
-	defer elapsed("ControllerDeleteVolume method")()
-	log.Infof("DeleteVolume req[%+v]", *req)
+	defer elapsed("ControllerServer::DeleteVolume")()
+	log.Infof("ControllerServer::DeleteVolume request[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
@@ -125,7 +125,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 }
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
-	log.Infof("ControllerPublishVolume req[%#v]", req)
+	log.Infof("ControllerServer::PublishVolume req[%+v]", *req)
 
 	// Volume Attach
 	instanceID := req.GetNodeId()
@@ -148,7 +148,7 @@ func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 }
 
 func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
-	log.Infof("ControllerListVolumes req[%#v]", req)
+	log.Infof("ControllerServer::ListVolumes request[%+v]", *req)
 
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {

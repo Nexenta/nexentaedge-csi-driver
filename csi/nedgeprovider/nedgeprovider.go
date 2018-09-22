@@ -35,7 +35,7 @@ type NedgeService struct {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::NedgeProvidererMeasurement %s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement NedgeProvider::%s took %v\n", what, time.Since(start))
 	}
 }
 
@@ -86,9 +86,9 @@ var nexentaEdgeProviderInstance INexentaEdgeProvider
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.SetLevel(log.DebugLevel)
-	log.Info("InitNexentaEdgeProvideri\n")
+	log.Info("NexentaEdgeProvider::InitNexentaEdgeProvider")
 	loggerLevel := log.GetLevel()
-	log.Infof("LOGGER LEVEL IS: %s\n", loggerLevel.String())
+	log.Infof("NexentaEdgeProvider::Logger level: %s", loggerLevel.String())
 
 	if nexentaEdgeProviderInstance == nil {
 
@@ -150,7 +150,7 @@ option parameters:
 	acl: 		string with nedge acl restrictions for bucket
 */
 func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName string, bucketName string, size int, options map[string]string) (err error) {
-	defer elapsed("CreateBucket")
+	defer elapsed("CreateBucket")()
 	path := fmt.Sprintf("clusters/%s/tenants/%s/buckets", clusterName, tenantName)
 
 	data := make(map[string]interface{})
@@ -177,7 +177,6 @@ func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName st
 	// enabled encryption tied with enc
 	if encryption, ok := options["encryption"]; ok {
 		data["optionsObject"].(map[string]interface{})["ccow-encryption-enabled"] = parseBooleanOption(encryption)
-
 	}
 
 	// erasure coding block tied with erasure mode
@@ -204,7 +203,7 @@ func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName st
 }
 
 func (nedge *NexentaEdgeProvider) DeleteBucket(cluster string, tenant string, bucket string, force bool) (err error) {
-	defer elapsed("DeleteBucket")
+	defer elapsed("DeleteBucket")()
 
 	if force == true {
 		path := fmt.Sprintf("clusters/%s/tenants/%s/buckets/%s?expunge=1&async=1", cluster, tenant, bucket)
@@ -256,7 +255,7 @@ func (nedge *NexentaEdgeProvider) setServiceConfigParam(service string, paramete
 }
 
 func (nedge *NexentaEdgeProvider) GetService(serviceName string) (service NedgeService, err error) {
-	log.Infof("GetService : %s\n", serviceName)
+	//log.Infof("NexentaEdgeProvider::GetService : %s\n", serviceName)
 
 	path := fmt.Sprintf("service/%s", serviceName)
 	body, err := nedge.doNedgeRequest("GET", path, nil)
@@ -349,7 +348,7 @@ func GetServiceData(serviceVal map[string]interface{}) (service NedgeService, er
 /*ListServices
  */
 func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err error) {
-	log.Info("ListServices: ")
+	//log.Info("ListServices: ")
 
 	path := "service"
 	body, err := nedge.doNedgeRequest("GET", path, nil)
@@ -392,7 +391,7 @@ func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err e
 		}
 	}
 
-	log.Debugf("ServiceList : %+v\n", services)
+	//log.Debugf("ServiceList : %+v\n", services)
 	return services, err
 }
 
@@ -477,7 +476,7 @@ func (nedge *NexentaEdgeProvider) IsBucketExist(cluster string, tenant string, b
 			return true
 		}
 	}
-	//log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
+	log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
 	return false
 }
 

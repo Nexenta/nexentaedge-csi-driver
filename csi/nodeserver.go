@@ -27,16 +27,15 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	defer elapsed("NodePublishVolume method")()
-	log.Infof("NodePublishVolume req[%#v]\n", req)
-	log.Info("NodePublishVolume:InitNexentaEdge")
+	defer elapsed("NodeServer::NodePublishVolume")()
+	log.Infof("NodeServer::NodePublishVolume req[%+v]\n", *req)
 	nedge, err := nexentaedge.InitNexentaEdge()
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err
 	}
 
-	log.Info("NodePublishVolume:nedge : %+v\n", nedge)
+	log.Info("NodeServer::NodePublishVolume:nedge : %+v", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 
@@ -52,7 +51,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't get cluster information by volumeID:%s, Error:%s", volumeID, err)
 	}
-	log.Infof("VolumeID: %s \nClusterData: %+v\n", volumeID, clusterData)
+	//log.Infof("VolumeID: %s \nClusterData: %+v\n", volumeID, clusterData)
 
 	// find service to serve
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
@@ -60,6 +59,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't find service data by VolumeID:%s Error:%s", volID, err)
 	}
+	log.Infof("Service %s found by volumeID %s", serviceData.Service, volumeID)
 
 	nfsVolume, nfsEndpoint, err := serviceData.GetNFSVolumeAndEndpoint(volID)
 	if err != nil {
@@ -98,13 +98,13 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Infof("NodePublishVolume invoked: volumeID: %s, targetPath: %s, endpoint: %s\n", volID, targetPath, nfsEndpoint)
+	log.Infof("NodeServer::NodePublishVolume volumeID: %s, targetPath: %s, endpoint: %s\n", volID, targetPath, nfsEndpoint)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	defer elapsed("NodeUnpublishVolume method")()
-	log.Infof("NodeUnpublishVolume req[%#v]\n", req)
+	defer elapsed("NodeServer::NodeUnpublishVolume method")()
+	log.Infof("NodeUnpublishVolume request[%+v]", *req)
 
 	targetPath := req.GetTargetPath()
 	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)

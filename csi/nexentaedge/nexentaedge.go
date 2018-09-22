@@ -68,13 +68,13 @@ func EncryptDecrypt(input string) (output string) {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::Measurement %s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement NexentaEdge::%s took %v\n", what, time.Since(start))
 	}
 }
 
 /*InitNexentaEdge reads config and discovers Nedge clusters*/
 func InitNexentaEdge() (nedge INexentaEdge, err error) {
-	defer elapsed("NexentaEdge::InitNexentaEdge")
+	defer elapsed("InitNexentaEdge")()
 	var config NedgeClusterConfig
 	var provider nedgeprovider.INexentaEdgeProvider
 	isStandAloneCluster := true
@@ -199,7 +199,7 @@ func IsNoServiceSpecified(missedParts map[string]bool) bool {
 
 /*CreateVolume creates bucket and serve it via nexentaedge service*/
 func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string]string) (volumeID string, err error) {
-	defer elapsed("NexentaEdge::CreateVolume")
+	defer elapsed("CreateVolume")()
 	// get first service from list, should be changed later
 
 	configMap := nedge.PrepareConfigMap()
@@ -230,7 +230,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 		// find apropriate service to serve
 		appropriateServiceData, err := clusterData.FindApropriateServiceData()
-		log.Infof("Appropriate service is : %+v\n", appropriateServiceData)
+
 		if err != nil {
 			log.Infof("Appropriate service selection failed : %+v\n", err)
 			return "", err
@@ -240,7 +240,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		volID.Service = appropriateServiceData.Service.Name
 	}
 
-	log.Infof("VolumeID : %+v", volID)
+	log.Infof("NexentaEdge::CreateVolume Appropriate VolumeID : %+v", volID)
 	err = nedge.CheckNfsServiceExists(volID.Service)
 	if err != nil {
 		log.Error(err)
@@ -257,14 +257,16 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		return "", fmt.Errorf("No cluster/tenant name %s/%s found", volID.Cluster, volID.Tenant)
 	}
 
-	log.Info("Creating bucket")
 	if !nedge.provider.IsBucketExist(volID.Cluster, volID.Tenant, volID.Bucket) {
-		log.Info("Bucket doesnt exist")
+		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s doesnt exist. Creating one", volID.Cluster, volID.Tenant, volID.Bucket)
 		err := nedge.provider.CreateBucket(volID.Cluster, volID.Tenant, volID.Bucket, 0, options)
 		if err != nil {
 			log.Error(err)
 			return "", err
 		}
+		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s created", volID.Cluster, volID.Tenant, volID.Bucket)
+	} else {
+		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s already exists", volID.Cluster, volID.Tenant, volID.Bucket)
 	}
 
 	// setup quota configuration
@@ -289,14 +291,15 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		log.Error(err)
 		return "", err
 	}
+	log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s served to service %s", volID.Cluster, volID.Tenant, volID.Bucket, volID.Service)
 
 	return volID.FullObjectPath(), err
 }
 
 /*DeleteVolume remotely deletes bucket on nexentaedge service*/
 func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
-	defer elapsed("NexentaEdge::DeleteVolume")
-	log.Info("NexentaEdgeProvider:DeleteVolume  VolumeID: ", volumeID)
+	defer elapsed("DeleteVolume")()
+	log.Info("NexentaEdgeProvider::DeleteVolume  VolumeID: ", volumeID)
 
 	var clusterData ClusterData
 	configMap := nedge.PrepareConfigMap()
@@ -359,7 +362,7 @@ func (nedge *NexentaEdge) GetK8sNedgeService(serviceName string) (resultService 
 }
 
 func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []nedgeprovider.NedgeService, err error) {
-	defer elapsed("NexentaEdge::ListServices")
+	defer elapsed("ListServices")()
 	var service nedgeprovider.NedgeService
 	var services []nedgeprovider.NedgeService
 	if nedge.isStandAloneCluster == true {
