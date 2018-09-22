@@ -82,7 +82,7 @@ type NexentaEdgeProvider struct {
 	auth     string
 }
 
-var nexentaEdgeProviderInstance INexentaEdgeProvider
+//var nexentaEdgeProviderInstance INexentaEdgeProvider
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.SetLevel(log.DebugLevel)
@@ -90,13 +90,13 @@ func InitNexentaEdgeProvider(restip string, port int16, username string, passwor
 	//loggerLevel := log.GetLevel()
 	//log.Infof("NexentaEdgeProvider::Logger level: %s", loggerLevel.String())
 
-	if nexentaEdgeProviderInstance == nil {
+	//if nexentaEdgeProviderInstance == nil {
 
-		nexentaEdgeProviderInstance = &NexentaEdgeProvider{
-			endpoint: fmt.Sprintf("http://%s:%d/", restip, port),
-			auth:     basicAuth(username, password),
-		}
+	nexentaEdgeProviderInstance := &NexentaEdgeProvider{
+		endpoint: fmt.Sprintf("http://%s:%d/", restip, port),
+		auth:     basicAuth(username, password),
 	}
+	//}
 
 	return nexentaEdgeProviderInstance
 }

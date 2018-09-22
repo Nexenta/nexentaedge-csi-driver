@@ -56,7 +56,7 @@ type NedgeClusterConfig struct {
 	NfsMountOptionsArray []string        `json:"-"`
 }
 
-var NexentaEdgeInstance INexentaEdge
+//var NexentaEdgeInstance INexentaEdge
 
 /* Method to XOR input password string */
 func EncryptDecrypt(input string) (output string) {
@@ -152,7 +152,7 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	}
 	log.Infof("Check healtz for %s is OK!", config.Nedgerest)
 
-	NexentaEdgeInstance = &NexentaEdge{
+	NexentaEdgeInstance := &NexentaEdge{
 		Mutex:               &sync.Mutex{},
 		provider:            provider,
 		clusterConfig:       config,
