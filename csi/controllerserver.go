@@ -27,10 +27,10 @@ func elapsed(what string) func() {
 }
 
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
-	defer elapsed("ControllerServer::CreateVolume method")()
+	defer elapsed("ControllerServer::CreateVolume")()
 	log.Infof("CreateVolume request[%+v]", *req)
 
-	nedge, err := nexentaedge.InitNexentaEdge()
+	nedge, err := nexentaedge.InitNexentaEdge("ControllerServer::CreateVolume")
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err
@@ -92,7 +92,7 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 	defer elapsed("ControllerServer::DeleteVolume")()
 	log.Infof("ControllerServer::DeleteVolume request[%+v]", *req)
 
-	nedge, err := nexentaedge.InitNexentaEdge()
+	nedge, err := nexentaedge.InitNexentaEdge("ControllerServer::DeleteVolume")
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err
@@ -148,16 +148,17 @@ func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *
 }
 
 func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolumesRequest) (*csi.ListVolumesResponse, error) {
+	defer elapsed("ControllerServer::ListVolumes")()
 	log.Infof("ControllerServer::ListVolumes request[%+v]", *req)
 
-	nedge, err := nexentaedge.InitNexentaEdge()
+	nedge, err := nexentaedge.InitNexentaEdge("ControllerServer::ListVolumes")
 	if err != nil {
 		log.Fatalf("Failed to get NexentaEdge instance. Error:", err)
 		return nil, err
 	}
 
 	volumes, err := nedge.ListVolumes()
-	log.Info("ControllerListVolumes ", volumes)
+	//log.Info("ControllerListVolumes ", volumes)
 
 	entries := make([]*csi.ListVolumesResponse_Entry, len(volumes))
 	for i, v := range volumes {

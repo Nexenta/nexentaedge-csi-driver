@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
-	log "github.com/sirupsen/logrus"
 )
 
 type NfsServiceData struct {
@@ -57,7 +56,7 @@ func (clusterData ClusterData) FindApropriateServiceData() (*NfsServiceData, err
 }
 
 func (clusterData ClusterData) FindServiceDataByVolumeID(volumeID nedgeprovider.VolumeID) (result *NfsServiceData, err error) {
-	log.Debug("FindServiceDataByVolumeID ")
+	//log.Debug("FindServiceDataByVolumeID ")
 
 	for _, data := range clusterData.nfsServicesData {
 		for _, nfsVolume := range data.NfsVolumes {

@@ -29,7 +29,7 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	defer elapsed("NodeServer::NodePublishVolume")()
 	log.Infof("NodeServer::NodePublishVolume req[%+v]\n", *req)
-	nedge, err := nexentaedge.InitNexentaEdge()
+	nedge, err := nexentaedge.InitNexentaEdge("NodeServer::NodePublishVolume")
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err

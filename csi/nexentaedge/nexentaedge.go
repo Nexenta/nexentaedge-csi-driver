@@ -73,13 +73,13 @@ func elapsed(what string) func() {
 }
 
 /*InitNexentaEdge reads config and discovers Nedge clusters*/
-func InitNexentaEdge() (nedge INexentaEdge, err error) {
-	defer elapsed("InitNexentaEdge")()
+func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
+	defer elapsed(invoker + "->InitNexentaEdge")()
 	var config NedgeClusterConfig
 	var provider nedgeprovider.INexentaEdgeProvider
 	isStandAloneCluster := true
 
-	log.Info("InitNexentaEdgeProvider")
+	//log.Info("InitNexentaEdgeProvider")
 
 	config, err = ReadParseConfig()
 	if err != nil {
@@ -218,8 +218,8 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	}
 
 	//try to find already existing service with specified volumeID
-	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
-	if err == nil && serviceData != nil {
+	serviceData, _ := clusterData.FindServiceDataByVolumeID(volID)
+	if serviceData != nil {
 		log.Warningf("Volume %s already exists via %s service", volID.FullObjectPath(), serviceData.Service.Name)
 		// returns no error because volume already exists
 		return volID.FullObjectPath(), nil
@@ -323,14 +323,17 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 
 	// find service to serve
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
-	log.Infof("Service is : %+v\n", serviceData)
+
 	if err != nil {
-		return err
+		log.Warnf("Can't find service by volumeID %+v, Error: %s", volID, err)
+		return nil
 	}
+	log.Infof("NexentaEdge::DeleteVolume Service %s found by volume %s", serviceData.Service.Name, volID.FullObjectPath())
 
 	// find nfs volume in service information
 	nfsVolume, err := serviceData.FindNFSVolumeByVolumeID(volID)
 	if err != nil {
+		log.Warnf("Can't find served volume by volumeID %+v, Error: %s", volID, err)
 		return err
 	}
 
