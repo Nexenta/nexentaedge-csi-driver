@@ -51,7 +51,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		//log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
-			log.Infof("New params: %+v\n", params)
+			//log.Infof("New params: %+v\n", params)
 		}
 	}
 
@@ -79,7 +79,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	log.Info("ControllerServer::CreateVolume : ", volumePath)
 	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
 	if err != nil {
-		log.Infof("Failed to CreateVolume: %v", err)
+		log.Infof("ControllerServer::CreateVolume Failed to CreateVolume %s: %v", volumePath, err)
 		return nil, err
 	}
 
