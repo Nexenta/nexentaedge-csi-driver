@@ -35,20 +35,20 @@ func IsConfigFileExists() bool {
 func ReadParseConfig() (config NedgeClusterConfig, err error) {
 
 	if !IsConfigFileExists() {
-		log.Infof("Config file %s has not been found\n", nedgeConfigFile)
-		return config, fmt.Errorf("Config file %s has not been found\n", nedgeConfigFile)
+		log.Infof("Config file %s not found", nedgeConfigFile)
+		return config, fmt.Errorf("Config file %s not found", nedgeConfigFile)
 	}
 
 	content, err := ioutil.ReadFile(nedgeConfigFile)
 	if err != nil {
-		err = fmt.Errorf("error reading config file: %s error: %s\n", nedgeConfigFile, err)
+		err = fmt.Errorf("error reading config file: %s error: %s", nedgeConfigFile, err)
 		log.Error(err.Error)
 		return config, err
 	}
 
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		err = fmt.Errorf("error parsing config file: %s error: %s\n", nedgeConfigFile, err)
+		err = fmt.Errorf("error parsing config file: %s error: %s", nedgeConfigFile, err)
 		log.Error(err.Error)
 		return config, err
 	}

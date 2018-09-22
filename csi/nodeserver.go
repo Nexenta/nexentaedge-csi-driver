@@ -35,7 +35,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, err
 	}
 
-	log.Info("NodeServer::NodePublishVolume:nedge : %+v", nedge)
+	//log.Info("NodeServer::NodePublishVolume:nedge : %+v", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 
@@ -87,7 +87,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	log.Infof("NodeServer::NodePublishVolume Publishing nfs volume %+v", nfsVolume)
 	//log.Infof("NexentaEdge export %s endpoint is %s", volID.FullObjectPath(), nfsEndpoint)
 
-	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nil)
+	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nedge.GetClusterConfig().NfsMountOptionsArray)
 	if err != nil {
 		if os.IsPermission(err) {
 			return nil, status.Error(codes.PermissionDenied, err.Error())

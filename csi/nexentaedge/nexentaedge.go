@@ -31,6 +31,7 @@ type INexentaEdge interface {
 	//GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error)
 	//GetVolumeID(volumeName string) (volumeID string, err error)
 	GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error)
+	GetClusterConfig() (config NedgeClusterConfig)
 }
 
 type NexentaEdge struct {
@@ -41,16 +42,18 @@ type NexentaEdge struct {
 }
 
 type NedgeClusterConfig struct {
-	Name                string
-	Nedgerest           string
-	Nedgeport           string
-	Username            string
-	Password            string
-	Cluster             string
-	Tenant              string
-	ForceBucketDeletion bool            `json:"forceBucketDeletion"`
-	ServiceFilter       string          `json:"serviceFilter"`
-	ServiceFilterMap    map[string]bool `json:"-"`
+	Name                 string
+	Nedgerest            string
+	Nedgeport            string
+	Username             string
+	Password             string
+	Cluster              string
+	Tenant               string
+	NfsMountOptions      string          `json:"nfsMountOptions"`
+	ForceBucketDeletion  bool            `json:"forceBucketDeletion"`
+	ServiceFilter        string          `json:"serviceFilter"`
+	ServiceFilterMap     map[string]bool `json:"-"`
+	NfsMountOptionsArray []string        `json:"-"`
 }
 
 var NexentaEdgeInstance INexentaEdge
@@ -79,8 +82,6 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	var provider nedgeprovider.INexentaEdgeProvider
 	isStandAloneCluster := true
 
-	//log.Info("InitNexentaEdgeProvider")
-
 	config, err = ReadParseConfig()
 	if err != nil {
 		err = fmt.Errorf("failed to read config file %s Error: %s", nedgeConfigFile, err)
@@ -101,6 +102,16 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 		services := strings.Split(config.ServiceFilter, ",")
 		for _, srvName := range services {
 			config.ServiceFilterMap[strings.TrimSpace(srvName)] = true
+		}
+	}
+
+	// NfsMountOptions parsing
+	config.NfsMountOptionsArray = []string{"vers=3", "tcp"}
+	if config.NfsMountOptions != "" {
+		config.NfsMountOptionsArray = []string{}
+		mountOptions := strings.Split(config.NfsMountOptions, ",")
+		for _, option := range mountOptions {
+			config.NfsMountOptionsArray = append(config.NfsMountOptionsArray, strings.TrimSpace(option))
 		}
 	}
 
@@ -149,6 +160,10 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	}
 
 	return NexentaEdgeInstance, nil
+}
+
+func (nedge *NexentaEdge) GetClusterConfig() (config NedgeClusterConfig) {
+	return nedge.clusterConfig
 }
 
 func (nedge *NexentaEdge) CheckNfsServiceExists(serviceName string) error {
