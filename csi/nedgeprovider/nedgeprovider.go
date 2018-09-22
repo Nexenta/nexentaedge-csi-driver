@@ -35,7 +35,7 @@ type NedgeService struct {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::Measurement NedgeProvider::%s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement NedgeProvider::%s took %v", what, time.Since(start))
 	}
 }
 
@@ -107,7 +107,7 @@ func (nedge *NexentaEdgeProvider) CheckHealth() (err error) {
 	body, err := nedge.doNedgeRequest("GET", path, nil)
 
 	if err != nil {
-		err = fmt.Errorf("Failed to send request %s, err: %s\n", path, err)
+		err = fmt.Errorf("Failed to send request %s, err: %s", path, err)
 		log.Error(err)
 		return err
 	}
@@ -255,7 +255,7 @@ func (nedge *NexentaEdgeProvider) setServiceConfigParam(service string, paramete
 }
 
 func (nedge *NexentaEdgeProvider) GetService(serviceName string) (service NedgeService, err error) {
-	//log.Infof("NexentaEdgeProvider::GetService : %s\n", serviceName)
+	//log.Infof("NexentaEdgeProvider::GetService : %s", serviceName)
 
 	path := fmt.Sprintf("service/%s", serviceName)
 	body, err := nedge.doNedgeRequest("GET", path, nil)
@@ -304,7 +304,7 @@ func GetServiceNetwork(serviceVal map[string]interface{}) (networks []string) {
 			subnetIndex := strings.Index(VIP, "/")
 			if subnetIndex > 0 {
 				VIP := VIP[:subnetIndex]
-				//log.Infof("X-VIP is: %s\n", VIP)
+				//log.Infof("X-VIP is: %s", VIP)
 				networks = append(networks, VIP)
 			}
 		}
@@ -341,7 +341,7 @@ func GetServiceData(serviceVal map[string]interface{}) (service NedgeService, er
 
 	service.Network = make([]string, 0)
 
-	//log.Debugf("Service : %+v\n", service)
+	//log.Debugf("Service : %+v", service)
 	return service, err
 }
 
@@ -391,7 +391,7 @@ func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err e
 		}
 	}
 
-	//log.Debugf("ServiceList : %+v\n", services)
+	//log.Debugf("ServiceList : %+v", services)
 	return services, err
 }
 
@@ -662,7 +662,7 @@ func getXServiceObjectsFromString(service string, xObjects string) (nfsVolumes [
 }
 
 func getVipIPFromString(xvips string) string {
-	//log.Infof("X-Vips is: %s\n", xvips)
+	//log.Infof("X-Vips is: %s", xvips)
 	xvipBody := []byte(xvips)
 	r := make([]interface{}, 0)
 	jsonerr := json.Unmarshal(xvipBody, &r)
@@ -670,7 +670,7 @@ func getVipIPFromString(xvips string) string {
 		log.Error(jsonerr)
 		return ""
 	}
-	//log.Infof("Processed is: %s\n", r)
+	//log.Infof("Processed is: %s", r)
 
 	if r == nil {
 		return ""
@@ -678,13 +678,13 @@ func getVipIPFromString(xvips string) string {
 
 	for _, outerArrayItem := range r {
 		//innerArray := outerArrayItem.([]interface{})
-		//log.Infof("InnerArray is: %s\n", innerArray)
+		//log.Infof("InnerArray is: %s", innerArray)
 
 		if innerArray, ok := outerArrayItem.([]interface{}); ok {
 			for _, innerArrayItem := range innerArray {
 				if item, ok := innerArrayItem.(map[string]interface{}); ok {
 					if ipValue, ok := item["ip"]; ok {
-						//log.Infof("VIP IP Found : %s\n", ipValue)
+						//log.Infof("VIP IP Found : %s", ipValue)
 						return ipValue.(string)
 					}
 				}

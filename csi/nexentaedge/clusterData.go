@@ -22,7 +22,7 @@ func (nfsServiceData *NfsServiceData) FindNFSVolumeByVolumeID(volumeID nedgeprov
 			return nfsVolume, nil
 		}
 	}
-	return resultNfsVolume, fmt.Errorf("Can't find NFS volume by VolumeID : %+v\n", volumeID)
+	return resultNfsVolume, fmt.Errorf("Can't find NFS volume by VolumeID : %+v", volumeID)
 }
 
 func (nfsServiceData *NfsServiceData) GetNFSVolumeAndEndpoint(volumeID nedgeprovider.VolumeID) (nfsVolume nedgeprovider.NedgeNFSVolume, endpoint string, err error) {

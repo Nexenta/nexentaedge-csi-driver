@@ -20,7 +20,7 @@ type nodeServer struct {
 }
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
-	log.Infof("NodeGetId req[%#v]\n", req)
+	log.Infof("NodeGetId req[%#v]", req)
 	// Using default function
 	log.Info("NodeGetId invoked")
 	return ns.DefaultNodeServer.NodeGetId(ctx, req)
@@ -28,7 +28,7 @@ func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) 
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
 	defer elapsed("NodeServer::NodePublishVolume")()
-	log.Infof("NodeServer::NodePublishVolume req[%+v]\n", *req)
+	log.Infof("NodeServer::NodePublishVolume req[%+v]", *req)
 	nedge, err := nexentaedge.InitNexentaEdge("NodeServer::NodePublishVolume")
 	if err != nil {
 		log.Fatal("Failed to get NexentaEdge instance")
@@ -51,11 +51,11 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't get cluster information by volumeID:%s, Error:%s", volumeID, err)
 	}
-	//log.Infof("VolumeID: %s \nClusterData: %+v\n", volumeID, clusterData)
+	//log.Infof("VolumeID: %s ClusterData: %+v", volumeID, clusterData)
 
 	// find service to serve
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
-	log.Infof("Finded ServiceData by volume %+v is : %+v\n", volID, serviceData)
+
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "Can't find service data by VolumeID:%s Error:%s", volID, err)
 	}
@@ -80,12 +80,12 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	if !notMnt {
-		log.Info("notMnt is False skipping\n")
+		//log.Info("notMnt is False skipping")
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	log.Infof("Publishing nfs volume %+v\n", nfsVolume)
-	log.Infof("NexentaEdge export %s endpoint is %s\n", volID.FullObjectPath(), nfsEndpoint)
+	log.Infof("NodeServer::NodePublishVolume Publishing nfs volume %+v", nfsVolume)
+	//log.Infof("NexentaEdge export %s endpoint is %s", volID.FullObjectPath(), nfsEndpoint)
 
 	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nil)
 	if err != nil {
@@ -98,13 +98,13 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
-	log.Infof("NodeServer::NodePublishVolume volumeID: %s, targetPath: %s, endpoint: %s\n", volID, targetPath, nfsEndpoint)
+	log.Infof("NodeServer::NodePublishVolume volumeID: %s, targetPath: %s, endpoint: %s", volID, targetPath, nfsEndpoint)
 	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (ns *nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
-	defer elapsed("NodeServer::NodeUnpublishVolume method")()
-	log.Infof("NodeUnpublishVolume request[%+v]", *req)
+	defer elapsed("NodeServer::NodeUnpublishVolume")()
+	log.Infof("NodeServer::NodeUnpublishVolume request[%+v]", *req)
 
 	targetPath := req.GetTargetPath()
 	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)

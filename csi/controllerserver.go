@@ -22,7 +22,7 @@ type controllerServer struct {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::Measurement %s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement %s took %v", what, time.Since(start))
 	}
 }
 
@@ -48,10 +48,10 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	if req.CapacityRange != nil {
-		//log.Infof("Volume %s CapacityRange: %+v\n", volumeName, *req.CapacityRange)
+		//log.Infof("Volume %s CapacityRange: %+v", volumeName, *req.CapacityRange)
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
-			//log.Infof("New params: %+v\n", params)
+			//log.Infof("New params: %+v", params)
 		}
 	}
 

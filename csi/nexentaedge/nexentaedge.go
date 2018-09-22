@@ -68,7 +68,7 @@ func EncryptDecrypt(input string) (output string) {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::Measurement NexentaEdge::%s took %v\n", what, time.Since(start))
+		log.Infof("::Measurement NexentaEdge::%s took %v", what, time.Since(start))
 	}
 }
 
@@ -136,7 +136,7 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.Username, configPassword)
 	err = provider.CheckHealth()
 	if err != nil {
-		log.Infof("InitNexentaEdge failed during CheckHealth : %+v\n", err)
+		log.Infof("InitNexentaEdge failed during CheckHealth : %+v", err)
 		return nil, err
 	}
 	log.Infof("Check healtz for %s is OK!", config.Nedgerest)
@@ -207,7 +207,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 
 	// throws error when can't substitute volume fill path, no service isn't error
 	if err != nil && !IsNoServiceSpecified(missedPathParts) {
-		log.Errorf("ParseVolumeID error : %+v\n", err)
+		log.Errorf("ParseVolumeID error : %+v", err)
 		return "", err
 	}
 
@@ -232,7 +232,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		appropriateServiceData, err := clusterData.FindApropriateServiceData()
 
 		if err != nil {
-			log.Infof("Appropriate service selection failed : %+v\n", err)
+			log.Infof("Appropriate service selection failed : %+v", err)
 			return "", err
 		}
 
@@ -376,14 +376,14 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 			services, err = nedge.provider.ListServices()
 		}
 	} else {
-		//log.Infof("List k8s services for NExentaEdge\n")
+		//log.Infof("List k8s services for NExentaEdge")
 		if len(serviceName) > 0 {
 			service, err = nedge.GetK8sNedgeService(serviceName[0])
 			services = append(services, service)
 		} else {
 			services, err = GetNedgeK8sClusterServices()
 		}
-		//log.Infof("Service list %+v\n", services)
+		//log.Infof("Service list %+v", services)
 	}
 
 	if err != nil {
@@ -432,7 +432,7 @@ func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume,
 /* returns ClusterData by raw volumeID string */
 func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error) {
 	var clusterData ClusterData
-	log.Infof("GetClusterDataByVolumeID: %s\n", volumeID)
+	//log.Infof("GetClusterDataByVolumeID: %s", volumeID)
 	configMap := nedge.PrepareConfigMap()
 	volID, missedPathParts, err := nedgeprovider.ParseVolumeID(volumeID, configMap)
 	if err != nil {
@@ -446,7 +446,7 @@ func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovid
 			}
 		}
 	} else {
-		log.Infof("GetClusterDataByVolumeID.GetClusterData: by service: %s\n", volID.Service)
+		//log.Infof("GetClusterDataByVolumeID.GetClusterData: by service: %s", volID.Service)
 		clusterData, err = nedge.GetClusterData(volID.Service)
 		if err != nil {
 			return volID, clusterData, err
@@ -480,8 +480,8 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 			}
 		}
 		if serviceFound != true {
-			log.Errorf("No service %s found in NexentaEdge cluster.\n", serviceName[0])
-			return clusterData, fmt.Errorf("No service %s found in NexentaEdge cluster.", serviceName[0])
+			log.Errorf("No service %s found in NexentaEdge cluster", serviceName[0])
+			return clusterData, fmt.Errorf("No service %s found in NexentaEdge cluster", serviceName[0])
 		}
 	}
 
