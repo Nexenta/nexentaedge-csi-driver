@@ -307,7 +307,6 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 	if err != nil {
 		// Only service missed in path notation, we should select appropriate service for new volume
 		if IsNoServiceSpecified(missedPathParts) {
-			log.Infof("No service specified!")
 			// get all services information to find service by path
 			clusterData, err = nedge.GetClusterData()
 			if err != nil {
@@ -438,7 +437,6 @@ func (nedge *NexentaEdge) GetClusterDataByVolumeID(volumeID string) (nedgeprovid
 	if err != nil {
 		// Only service missed in path notation, we should select appropriate service for new volume
 		if IsNoServiceSpecified(missedPathParts) {
-			log.Infof("No service specified!")
 			// get all services information to find service by path
 			clusterData, err = nedge.GetClusterData()
 			if err != nil {
