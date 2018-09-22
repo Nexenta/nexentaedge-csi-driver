@@ -339,17 +339,19 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
 
 	if err != nil {
-		log.Warnf("Can't find service by volumeID %+v, Error: %s", volID, err)
+		log.Warnf("Can't find service by volumeID %+v", volID)
+		// returns nil, because there is no service with such volume
 		return nil
 	}
-	log.Infof("NexentaEdge::DeleteVolume Service %s found by volume %s", serviceData.Service.Name, volID.FullObjectPath())
 
 	// find nfs volume in service information
 	nfsVolume, err := serviceData.FindNFSVolumeByVolumeID(volID)
 	if err != nil {
 		log.Warnf("Can't find served volume by volumeID %+v, Error: %s", volID, err)
-		return err
+		// returns nil, because volume already unserved
+		return nil
 	}
+	log.Infof("NexentaEdge::DeleteVolume by VolumeID: %+v", nfsVolume.VolumeID)
 
 	// before unserve bucket we need to unset ACL property
 	nedge.provider.SetServiceAclConfiguration(nfsVolume.VolumeID.Service, nfsVolume.VolumeID.Tenant, nfsVolume.VolumeID.Bucket, "")
