@@ -437,7 +437,7 @@ func (nedge *NexentaEdgeProvider) ListNFSVolumes(serviceName string) (nfsVolumes
 }
 
 func (nedge *NexentaEdgeProvider) ServeBucket(service string, cluster string, tenant string, bucket string) (err error) {
-	defer elapsed("ServeBucket")
+	defer elapsed("ServeBucket")()
 	path := fmt.Sprintf("service/%s/serve", service)
 	serve := fmt.Sprintf("%s/%s/%s", cluster, tenant, bucket)
 
@@ -451,6 +451,7 @@ func (nedge *NexentaEdgeProvider) ServeBucket(service string, cluster string, te
 }
 
 func (nedge *NexentaEdgeProvider) UnserveBucket(service string, cluster string, tenant string, bucket string) (err error) {
+	defer elapsed("UnserveBucket")()
 	path := fmt.Sprintf("service/%s/serve", service)
 	serve := fmt.Sprintf("%s/%s/%s", cluster, tenant, bucket)
 
@@ -464,7 +465,7 @@ func (nedge *NexentaEdgeProvider) UnserveBucket(service string, cluster string, 
 }
 
 func (nedge *NexentaEdgeProvider) IsBucketExist(cluster string, tenant string, bucket string) bool {
-	log.Debugf("Check bucket existance for %s/%s/%s", cluster, tenant, bucket)
+	//log.Debugf("Check bucket existance for %s/%s/%s", cluster, tenant, bucket)
 	buckets, err := nedge.ListBuckets(cluster, tenant)
 	if err != nil {
 		return false
@@ -472,11 +473,11 @@ func (nedge *NexentaEdgeProvider) IsBucketExist(cluster string, tenant string, b
 
 	for _, value := range buckets {
 		if bucket == value {
-			log.Debugf("Bucket %s/%s/%s already exist", cluster, tenant, bucket)
+			//log.Debugf("Bucket %s/%s/%s already exist", cluster, tenant, bucket)
 			return true
 		}
 	}
-	log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
+	//log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
 	return false
 }
 
