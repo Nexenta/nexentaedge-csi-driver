@@ -86,9 +86,9 @@ var nexentaEdgeProviderInstance INexentaEdgeProvider
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.SetLevel(log.DebugLevel)
-	log.Info("NexentaEdgeProvider::InitNexentaEdgeProvider")
-	loggerLevel := log.GetLevel()
-	log.Infof("NexentaEdgeProvider::Logger level: %s", loggerLevel.String())
+	//log.Info("NexentaEdgeProvider::InitNexentaEdgeProvider")
+	//loggerLevel := log.GetLevel()
+	//log.Infof("NexentaEdgeProvider::Logger level: %s", loggerLevel.String())
 
 	if nexentaEdgeProviderInstance == nil {
 

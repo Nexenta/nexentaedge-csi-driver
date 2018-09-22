@@ -74,7 +74,7 @@ func elapsed(what string) func() {
 
 /*InitNexentaEdge reads config and discovers Nedge clusters*/
 func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
-	defer elapsed(invoker + "->InitNexentaEdge")()
+	defer elapsed(invoker + ".InitNexentaEdge")()
 	var config NedgeClusterConfig
 	var provider nedgeprovider.INexentaEdgeProvider
 	isStandAloneCluster := true
