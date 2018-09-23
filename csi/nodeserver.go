@@ -49,20 +49,22 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 
 	volID, clusterData, err := nedge.GetClusterDataByVolumeID(volumeID)
 	if err != nil {
+		log.Errorf("NodeServer::NodePublishVolume Can't get clusterData by volumeID  %+v. Error: %v", volID, err)
 		return nil, status.Errorf(codes.NotFound, "Can't get cluster information by volumeID:%s, Error:%s", volumeID, err)
 	}
 	//log.Infof("VolumeID: %s ClusterData: %+v", volumeID, clusterData)
 
 	// find service to serve
 	serviceData, err := clusterData.FindServiceDataByVolumeID(volID)
-
 	if err != nil {
+		log.Errorf("NodeServer::NodePublishVolume Can't find serviceData by volumeID  %+v. Error: %v", volID, err)
 		return nil, status.Errorf(codes.NotFound, "Can't find service data by VolumeID:%s Error:%s", volID, err)
 	}
 	log.Infof("Service %s found by volumeID %s", serviceData.Service, volumeID)
 
 	nfsVolume, nfsEndpoint, err := serviceData.GetNFSVolumeAndEndpoint(volID)
 	if err != nil {
+		log.Errorf("NodeServer::NodePublishVolume Can't find nfs volume %+v. Error: %v", volID, err)
 		return nil, status.Errorf(codes.NotFound, "Can't find NFS Volume or endpoint by VolumeID:%s Error:%s", volID, err)
 	}
 
@@ -71,16 +73,19 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	if err != nil {
 		if os.IsNotExist(err) {
 			if err := os.MkdirAll(targetPath, 0750); err != nil {
+				log.Errorf("NodeServer::NodePublishVolume Failed to mkdir to target path %+v. Error: %v", nfsVolume, err)
 				return nil, status.Error(codes.Internal, err.Error())
 			}
 			notMnt = true
 		} else {
+			log.Errorf("NodeServer::NodePublishVolume Failed to mkdir to target path %+v. Error: %v", nfsVolume, err)
 			return nil, status.Error(codes.Internal, err.Error())
 		}
 	}
 
 	if !notMnt {
 		//log.Info("notMnt is False skipping")
+		log.Warning("NodeServer::NodePublishVolume Skipped to mount volume %+v. Error: %v", nfsVolume, err)
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
@@ -90,11 +95,14 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nedge.GetClusterConfig().NfsMountOptionsArray)
 	if err != nil {
 		if os.IsPermission(err) {
+			log.Errorf("NodeServer::NodePublishVolume Failed to mount volume %+v. Error: %v", nfsVolume, err)
 			return nil, status.Error(codes.PermissionDenied, err.Error())
 		}
 		if strings.Contains(err.Error(), "invalid argument") {
+			log.Errorf("NodeServer::NodePublishVolume Failed to mount volume %+v. Error: %v", nfsVolume, err)
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
+		log.Errorf("NodeServer::NodePublishVolume Failed to mount volume %+v. Error: %v", nfsVolume, err)
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 
