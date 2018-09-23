@@ -624,7 +624,6 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic("Error while handling request ", err)
 		return nil, err
 	}
-	io.Copy(ioutil.Discard, resp.Body)
 	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
@@ -632,7 +631,7 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic("Error while handling request ", err)
 		return nil, err
 	}
-
+	io.Copy(ioutil.Discard, resp.Body)
 	log.Debugf("[%s] %s %+v : %d", method, url, data, resp.StatusCode)
 	err = nedge.checkError(resp)
 	if err != nil {
