@@ -48,10 +48,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	if req.CapacityRange != nil {
-		//log.Infof("Volume %s CapacityRange: %+v", volumeName, *req.CapacityRange)
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
-			//log.Infof("New params: %+v", params)
 		}
 	}
 
@@ -69,12 +67,6 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 	volumePath += volumeName
 
-	// CreateVolume response
-	resultVolume := &csi.Volume{}
-	resp := &csi.CreateVolumeResponse{
-		Volume: resultVolume,
-	}
-
 	// Volume Create
 	log.Info("ControllerServer::CreateVolume : ", volumePath)
 	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
@@ -83,8 +75,13 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		return nil, err
 	}
 
-	// Return information on existing volume
-	resultVolume.Id = newVolumeID
+	// CreateVolume response
+	resp := &csi.CreateVolumeResponse{
+		Volume: &csi.Volume{
+			Id: newVolumeID,
+		},
+	}
+
 	return resp, nil
 }
 
@@ -126,24 +123,11 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 
 func (cs *controllerServer) ControllerPublishVolume(ctx context.Context, req *csi.ControllerPublishVolumeRequest) (*csi.ControllerPublishVolumeResponse, error) {
 	log.Infof("ControllerServer::PublishVolume req[%+v]", *req)
-
-	// Volume Attach
-	instanceID := req.GetNodeId()
-	volumeID := req.GetVolumeId()
-
-	log.Info("ControllerPublishVolume ", volumeID, " on ", instanceID)
-
 	return &csi.ControllerPublishVolumeResponse{}, nil
 }
 
 func (cs *controllerServer) ControllerUnpublishVolume(ctx context.Context, req *csi.ControllerUnpublishVolumeRequest) (*csi.ControllerUnpublishVolumeResponse, error) {
 	log.Infof("ControllerUnpublishVolume req[%#v]", req)
-	// Volume Detach
-	instanceID := req.GetNodeId()
-	volumeID := req.GetVolumeId()
-
-	log.Info("ControllerUnpublishVolume ", volumeID, "on ", instanceID)
-
 	return &csi.ControllerUnpublishVolumeResponse{}, nil
 }
 

@@ -88,17 +88,11 @@ type NexentaEdgeProvider struct {
 
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.SetLevel(log.DebugLevel)
-	//log.Info("NexentaEdgeProvider::InitNexentaEdgeProvider")
-	//loggerLevel := log.GetLevel()
-	//log.Infof("NexentaEdgeProvider::Logger level: %s", loggerLevel.String())
-
-	//if nexentaEdgeProviderInstance == nil {
 
 	nexentaEdgeProviderInstance := &NexentaEdgeProvider{
 		endpoint: fmt.Sprintf("http://%s:%d/", restip, port),
 		auth:     basicAuth(username, password),
 	}
-	//}
 
 	return nexentaEdgeProviderInstance
 }
@@ -603,6 +597,8 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 			Timeout:   10 * time.Second,
 			KeepAlive: 10 * time.Second,
 		}).Dial,
+		MaxIdleConns:          150,
+		MaxIdleConnsPerHost:   150,
 		IdleConnTimeout:       5 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
