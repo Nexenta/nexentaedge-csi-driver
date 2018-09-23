@@ -2,7 +2,7 @@
 # that are necessary to run nexentaedge-csi-plugin
 # TODO: Specify correct nexentaedge-csi-plugin image to install!!!
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: nexentaedge-csi-plugin
 spec:
