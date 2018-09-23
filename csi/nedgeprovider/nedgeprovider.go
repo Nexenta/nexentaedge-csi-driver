@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -596,7 +598,17 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic(err)
 	}
 
-	tr := &http.Transport{}
+	tr := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 10 * time.Second,
+		}).Dial,
+		IdleConnTimeout:       5 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
 	client := &http.Client{Transport: tr}
 
 	url := nedge.endpoint + restpath
@@ -612,11 +624,16 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic("Error while handling request ", err)
 		return nil, err
 	}
+	io.Copy(ioutil.Discard, resp.Body)
 	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Panic("Error while handling request ", err)
+		return nil, err
+	}
+
 	log.Debugf("[%s] %s %+v : %d", method, url, data, resp.StatusCode)
-	//log.Debug("Got response, code: ", resp.StatusCode, ", body: ", string(body))
 	err = nedge.checkError(resp)
 	if err != nil {
 		log.Panic(err)
