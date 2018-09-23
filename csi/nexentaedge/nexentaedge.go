@@ -256,9 +256,10 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	}
 
 	log.Infof("NexentaEdge::CreateVolume Appropriate VolumeID : %+v", volID)
-	err = nedge.CheckNfsServiceExists(volID.Service)
-	if err != nil {
-		log.Error(err)
+	serviceData, err = clusterData.FindNfsServiceData(volID.Service)
+	//err = nedge.CheckNfsServiceExists(volID.Service)
+	if serviceData == nil {
+		log.Error(err.Error)
 		return "", err
 	}
 
@@ -417,7 +418,6 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 
 		if service.ServiceType == "nfs" && service.Status == "enabled" && len(service.Network) > 0 {
 			resultServices = append(resultServices, service)
-
 		}
 	}
 	return resultServices, err
@@ -504,10 +504,10 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 
 		nfsVolumes, err := nedge.provider.ListNFSVolumes(service.Name)
 		if err == nil {
-
 			nfsServiceData := NfsServiceData{Service: service, NfsVolumes: nfsVolumes}
-
 			clusterData.nfsServicesData = append(clusterData.nfsServicesData, nfsServiceData)
+		} else {
+			log.Errorf("Failed to retrieve nfs export list for %s service. Error: %+v", service.Name, err)
 		}
 	}
 

@@ -348,7 +348,7 @@ func GetServiceData(serviceVal map[string]interface{}) (service NedgeService, er
 /*ListServices
  */
 func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err error) {
-	//log.Info("ListServices: ")
+	defer elapsed("ListServices")()
 
 	path := "service"
 	body, err := nedge.doNedgeRequest("GET", path, nil)
@@ -396,8 +396,15 @@ func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err e
 }
 
 func (nedge *NexentaEdgeProvider) ListNFSVolumes(serviceName string) (nfsVolumes []NedgeNFSVolume, err error) {
+	defer elapsed("ListNFSVolumes")()
+
 	path := fmt.Sprintf("service/%s", serviceName)
 	body, err := nedge.doNedgeRequest("GET", path, nil)
+
+	if err != nil {
+		log.Error(err)
+		return nfsVolumes, err
+	}
 
 	r := make(map[string]map[string]interface{})
 	jsonerr := json.Unmarshal(body, &r)
@@ -591,8 +598,9 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 
 	tr := &http.Transport{}
 	client := &http.Client{Transport: tr}
+
 	url := nedge.endpoint + restpath
-	//log.Debugf("Request to NexentaEdge [%s] %s data: %+v ", method, url, data)
+
 	req, err := http.NewRequest(method, url, nil)
 	if len(data) != 0 {
 		req, err = http.NewRequest(method, url, strings.NewReader(string(datajson)))
@@ -604,13 +612,16 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic("Error while handling request ", err)
 		return nil, err
 	}
-	body, err = ioutil.ReadAll(resp.Body)
-	//log.Debug("Got response, code: ", resp.StatusCode, ", body: ", string(body))
-	nedge.checkError(resp)
 	defer resp.Body.Close()
+
+	body, err = ioutil.ReadAll(resp.Body)
+	log.Debugf("[%s] %s %+v : %d", method, url, data, resp.StatusCode)
+	//log.Debug("Got response, code: ", resp.StatusCode, ", body: ", string(body))
+	err = nedge.checkError(resp)
 	if err != nil {
 		log.Panic(err)
 	}
+
 	return body, err
 }
 
