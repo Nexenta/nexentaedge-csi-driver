@@ -3,6 +3,7 @@ package csi
 import (
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -17,6 +18,7 @@ import (
 
 type nodeServer struct {
 	*csicommon.DefaultNodeServer
+	mux sync.Mutex
 }
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
@@ -38,6 +40,7 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	//log.Info("NodeServer::NodePublishVolume:nedge : %+v", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
+	volumeCapability := req.GetVolumeCapability()
 
 	// Check arguments
 	if len(volumeID) == 0 {

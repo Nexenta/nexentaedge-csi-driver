@@ -1,6 +1,8 @@
 package csi
 
 import (
+	"sync"
+
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/kubernetes-csi/drivers/pkg/csi-common"
 	log "github.com/sirupsen/logrus"
@@ -57,6 +59,7 @@ func NewDriver(nodeID string, endpoint string) *driver {
 func NewControllerServer(d *driver) *controllerServer {
 	return &controllerServer{
 		DefaultControllerServer: csicommon.NewDefaultControllerServer(d.csiDriver),
+		mux: sync.Mutex{},
 	}
 }
 
@@ -64,6 +67,7 @@ func NewControllerServer(d *driver) *controllerServer {
 func NewNodeServer(d *driver) *nodeServer {
 	return &nodeServer{
 		DefaultNodeServer: csicommon.NewDefaultNodeServer(d.csiDriver),
+		mux:               sync.Mutex{},
 	}
 }
 

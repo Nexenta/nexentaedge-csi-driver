@@ -80,8 +80,9 @@ type INexentaEdgeProvider interface {
 }
 
 type NexentaEdgeProvider struct {
-	endpoint string
-	auth     string
+	endpoint   string
+	auth       string
+	httpClient *http.Client
 }
 
 //var nexentaEdgeProviderInstance INexentaEdgeProvider
@@ -89,9 +90,18 @@ type NexentaEdgeProvider struct {
 func InitNexentaEdgeProvider(restip string, port int16, username string, password string) INexentaEdgeProvider {
 	log.SetLevel(log.DebugLevel)
 
+	tr := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout:   15 * time.Second,
+			KeepAlive: 0,
+		}).Dial,
+		DisableKeepAlives: true,
+	}
+
 	nexentaEdgeProviderInstance := &NexentaEdgeProvider{
-		endpoint: fmt.Sprintf("http://%s:%d/", restip, port),
-		auth:     basicAuth(username, password),
+		endpoint:   fmt.Sprintf("http://%s:%d/", restip, port),
+		auth:       basicAuth(username, password),
+		httpClient: &http.Client{Transport: tr},
 	}
 
 	return nexentaEdgeProviderInstance
@@ -124,7 +134,7 @@ func (nedge *NexentaEdgeProvider) CheckHealth() (err error) {
 	result := r["response"]["restWorker"]
 	if result != "ok" {
 		err = fmt.Errorf("Wrong response of the CheckHealth call: restWorker is %s", result)
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return
 	}
 
@@ -204,7 +214,7 @@ func (nedge *NexentaEdgeProvider) DeleteBucket(cluster string, tenant string, bu
 	if force == true {
 		path := fmt.Sprintf("clusters/%s/tenants/%s/buckets/%s?expunge=1&async=1", cluster, tenant, bucket)
 
-		log.Infof("DeleteBucket: path: %s ", path)
+		//log.Infof("DeleteBucket: path: %s ", path)
 		_, err = nedge.doNedgeRequest("DELETE", path, nil)
 	}
 
@@ -272,14 +282,14 @@ func (nedge *NexentaEdgeProvider) GetService(serviceName string) (service NedgeS
 	data := r["response"]["data"]
 	if data == nil {
 		err = fmt.Errorf("No response.data object found for GetService request")
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return service, err
 	}
 
 	serviceVal := data.(map[string]interface{})
 	if serviceVal == nil {
 		err = fmt.Errorf("No service data object found")
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return service, err
 	}
 
@@ -365,7 +375,7 @@ func (nedge *NexentaEdgeProvider) ListServices() (services []NedgeService, err e
 	data := r["response"]["data"]
 	if data == nil {
 		err = fmt.Errorf("No response.data object found for ListService request")
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return services, err
 	}
 
@@ -413,14 +423,14 @@ func (nedge *NexentaEdgeProvider) ListNFSVolumes(serviceName string) (nfsVolumes
 	data := r["response"]["data"]
 	if data == nil {
 		err = fmt.Errorf("No response.data object found for GetService request")
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return nfsVolumes, err
 	}
 
 	serviceVal := data.(map[string]interface{})
 	if serviceVal == nil {
 		err = fmt.Errorf("No service data object found")
-		log.Debug(err.Error)
+		log.Error(err.Error)
 		return nfsVolumes, err
 	}
 
@@ -468,19 +478,25 @@ func (nedge *NexentaEdgeProvider) UnserveBucket(service string, cluster string, 
 }
 
 func (nedge *NexentaEdgeProvider) IsBucketExist(cluster string, tenant string, bucket string) bool {
-	//log.Debugf("Check bucket existance for %s/%s/%s", cluster, tenant, bucket)
-	buckets, err := nedge.ListBuckets(cluster, tenant)
+	url := fmt.Sprintf("clusters/%s/tenants/%s/buckets?bucketName=%s", cluster, tenant, bucket)
+	body, err := nedge.doNedgeRequest("GET", url, nil)
 	if err != nil {
 		return false
 	}
 
-	for _, value := range buckets {
-		if bucket == value {
-			//log.Debugf("Bucket %s/%s/%s already exist", cluster, tenant, bucket)
-			return true
-		}
+	r := make(map[string]interface{})
+	jsonerr := json.Unmarshal(body, &r)
+	if jsonerr != nil {
+		log.Error(jsonerr)
+		return false
 	}
-	//log.Debugf("No bucket %s/%s/%s found", cluster, tenant, bucket)
+
+	if r["response"] == nil {
+		return false
+	}
+
+	return true
+
 	return false
 }
 
@@ -592,21 +608,6 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 		log.Panic(err)
 	}
 
-	tr := &http.Transport{
-		Dial: (&net.Dialer{
-			Timeout:   10 * time.Second,
-			KeepAlive: 10 * time.Second,
-		}).Dial,
-		MaxIdleConns:          150,
-		MaxIdleConnsPerHost:   150,
-		IdleConnTimeout:       5 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ResponseHeaderTimeout: 10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-
-	client := &http.Client{Transport: tr}
-
 	url := nedge.endpoint + restpath
 
 	req, err := http.NewRequest(method, url, nil)
@@ -615,7 +616,7 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Basic "+nedge.auth)
-	resp, err := client.Do(req)
+	resp, err := nedge.httpClient.Do(req)
 	if err != nil {
 		log.Panic("Error while handling request ", err)
 		return nil, err

@@ -3,6 +3,7 @@ package csi
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
@@ -17,6 +18,7 @@ import (
 
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
+	mux sync.Mutex
 }
 
 func elapsed(what string) func() {
@@ -71,7 +73,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	log.Info("ControllerServer::CreateVolume : ", volumePath)
 	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
 	if err != nil {
-		log.Infof("ControllerServer::CreateVolume Failed to CreateVolume %s: %v", volumePath, err)
+		log.Errorf("ControllerServer::CreateVolume Failed to CreateVolume %s: %v", volumePath, err)
 		return nil, err
 	}
 
