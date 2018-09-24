@@ -38,7 +38,7 @@ func DeleteVolume(nedge nexentaedge.INexentaEdge, volumeID string) {
 
 func main() {
 
-	nedge, err := nexentaedge.InitNexentaEdge()
+	nedge, err := nexentaedge.InitNexentaEdge("main")
 	if err != nil {
                 fmt.Printf("Failed to InitNexentaEdge: %s\n", err)
                 return

@@ -21,6 +21,12 @@ type nodeServer struct {
 	mux sync.Mutex
 }
 
+/*
+func (ns *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
+        return nil, status.Error(codes.Unimplemented, "")
+}
+*/
+
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
 	log.Infof("NodeGetId req[%#v]", req)
 	// Using default function

@@ -1,7 +1,7 @@
 PLUGIN_NAME=nexentaedge-csi-plugin
 IMAGE_NAME=$(PLUGIN_NAME)
-DOCKER_FILE=Dockerfile.centos7
-REGISTRY=nexenta
+DOCKER_FILE=Dockerfile
+REGISTRY=10.3.30.75:5000
 IMAGE_TAG=latest
 
 .PHONY: all nfs 
