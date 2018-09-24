@@ -49,6 +49,12 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		params = make(map[string]string)
 	}
 
+
+        sz := req.GetCapacityRange().GetRequiredBytes()
+        if sz == 0 {
+               sz = 1073741824
+	}
+
 	if req.CapacityRange != nil {
 		if req.CapacityRange.LimitBytes > 0 {
 			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
@@ -81,6 +87,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			Id: newVolumeID,
+                        CapacityBytes: sz,
+                        Attributes: req.GetParameters(),
 		},
 	}
 
