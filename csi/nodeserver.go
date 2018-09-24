@@ -40,7 +40,6 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	//log.Info("NodeServer::NodePublishVolume:nedge : %+v", nedge)
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
-	volumeCapability := req.GetVolumeCapability()
 
 	// Check arguments
 	if len(volumeID) == 0 {
