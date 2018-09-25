@@ -297,7 +297,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	}
 	log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s served to service %s", volID.Cluster, volID.Tenant, volID.Bucket, volID.Service)
 
-	return volID.FullObjectPath(), err
+	return volID.FullObjectPath(), nil
 }
 
 /*DeleteVolume remotely deletes bucket on nexentaedge service*/
@@ -351,7 +351,7 @@ func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 		nedge.provider.DeleteBucket(nfsVolume.VolumeID.Cluster, nfsVolume.VolumeID.Tenant, nfsVolume.VolumeID.Bucket, nedge.clusterConfig.ForceBucketDeletion)
 	}
 
-	return err
+	return nil
 }
 
 func (nedge *NexentaEdge) GetK8sNedgeService(serviceName string) (resultService nedgeprovider.NedgeService, err error) {
