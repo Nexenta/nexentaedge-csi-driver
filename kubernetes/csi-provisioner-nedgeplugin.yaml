@@ -32,12 +32,13 @@ spec:
         - name: csi-provisioner
           image: quay.io/k8scsi/csi-provisioner:v0.3.1
           args:
+            - "--connection-timeout=25s"
             - "--provisioner=nexentaedge-csi-plugin"
             - "--csi-address=$(ADDRESS)"
           env:
             - name: ADDRESS
               value: /var/lib/csi/sockets/pluginproxy/csi.sock
-          imagePullPolicy: "IfNotPresent"
+          imagePullPolicy: "Always"
           volumeMounts:
             - name: socket-dir
               mountPath: /var/lib/csi/sockets/pluginproxy/
