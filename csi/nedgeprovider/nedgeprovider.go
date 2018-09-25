@@ -92,10 +92,8 @@ func InitNexentaEdgeProvider(restip string, port int16, username string, passwor
 
 	tr := &http.Transport{
 		Dial: (&net.Dialer{
-			Timeout:   15 * time.Second,
-			KeepAlive: 0,
+			Timeout:  300 * time.Second,
 		}).Dial,
-		DisableKeepAlives: true,
 	}
 
 	nexentaEdgeProviderInstance := &NexentaEdgeProvider{
@@ -193,6 +191,11 @@ func (nedge *NexentaEdgeProvider) CreateBucket(clusterName string, tenantName st
 		} else {
 			return errors.New("Cannot enable Erasure Coding without additional option erasureMode. 'erasureMode' available values:[\"4:2:rs\", \"6:2:rs\", \"9:3:rs\"]")
 		}
+	}
+
+	// setup quota configuration
+	if quota, ok := options["size"]; ok {
+		data["optionsObject"].(map[string]interface{})["quota"] = quota
 	}
 
 	data["optionsObject"].(map[string]interface{})["ccow-chunkmap-chunk-size"] = chunkSize

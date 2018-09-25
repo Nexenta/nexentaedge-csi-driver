@@ -3,7 +3,6 @@ package csi
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
@@ -18,7 +17,6 @@ import (
 
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
-	mux sync.Mutex
 }
 
 func elapsed(what string) func() {
@@ -49,17 +47,11 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		params = make(map[string]string)
 	}
 
-
-        sz := req.GetCapacityRange().GetRequiredBytes()
-        if sz == 0 {
-               sz = 1073741824
+	sz := req.GetCapacityRange().GetRequiredBytes()
+	if sz == 0 {
+		sz = 1073741824
 	}
-
-	if req.CapacityRange != nil {
-		if req.CapacityRange.LimitBytes > 0 {
-			params["size"] = strconv.FormatInt(req.CapacityRange.LimitBytes, 10)
-		}
-	}
+	params["size"] = strconv.FormatInt(sz, 10)
 
 	volumePath := ""
 	if service, ok := params["service"]; ok {
@@ -87,8 +79,8 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
 			Id: newVolumeID,
-                        CapacityBytes: sz,
-                        Attributes: req.GetParameters(),
+			CapacityBytes: sz,
+			Attributes: req.GetParameters(),
 		},
 	}
 
@@ -165,4 +157,13 @@ func (cs *controllerServer) ListVolumes(ctx context.Context, req *csi.ListVolume
 	return &csi.ListVolumesResponse{
 		Entries: entries,
 	}, nil
+}
+
+func (cs *controllerServer) ValidateVolumeCapabilities(ctx context.Context, req *csi.ValidateVolumeCapabilitiesRequest) (*csi.ValidateVolumeCapabilitiesResponse, error) {
+	for _, cap := range req.VolumeCapabilities {
+		if cap.GetBlock() != nil {
+			return &csi.ValidateVolumeCapabilitiesResponse{Supported: false, Message: ""}, nil
+		}
+	}
+	return &csi.ValidateVolumeCapabilitiesResponse{Supported: true}, nil
 }

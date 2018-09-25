@@ -285,16 +285,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s already exists", volID.Cluster, volID.Tenant, volID.Bucket)
 	}
 
-	// setup quota configuration
-	if quota, ok := options["size"]; ok {
-		err = nedge.provider.SetBucketQuota(volID.Cluster, volID.Tenant, volID.Bucket, quota)
-		if err != nil {
-			log.Error(err)
-			return "", err
-		}
-	}
-
-	//setup service configuration
+	// setup service configuration if asked
 	if options["acl"] != "" {
 		err := nedge.provider.SetServiceAclConfiguration(volID.Service, volID.Tenant, volID.Bucket, options["acl"])
 		if err != nil {

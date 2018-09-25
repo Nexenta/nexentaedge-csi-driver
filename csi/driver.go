@@ -1,8 +1,6 @@
 package csi
 
 import (
-	"sync"
-
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/kubernetes-csi/drivers/pkg/csi-common"
 	log "github.com/sirupsen/logrus"
@@ -25,7 +23,7 @@ const (
 )
 
 var (
-	version = "0.2.0"
+	version = "0.3.0"
 )
 
 /*GetCSIDriver returns pointer to driver */
@@ -45,10 +43,9 @@ func NewDriver(nodeID string, endpoint string) *driver {
 	csiDriver.AddControllerServiceCapabilities(
 		[]csi.ControllerServiceCapability_RPC_Type{
 			csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-			//csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
 			csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
 		})
-	csiDriver.AddVolumeCapabilityAccessModes([]csi.VolumeCapability_AccessMode_Mode{csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER})
+	csiDriver.AddVolumeCapabilityAccessModes([]csi.VolumeCapability_AccessMode_Mode{csi.VolumeCapability_AccessMode_MULTI_NODE_MULTI_WRITER})
 
 	d.csiDriver = csiDriver
 
@@ -59,7 +56,6 @@ func NewDriver(nodeID string, endpoint string) *driver {
 func NewControllerServer(d *driver) *controllerServer {
 	return &controllerServer{
 		DefaultControllerServer: csicommon.NewDefaultControllerServer(d.csiDriver),
-		mux: sync.Mutex{},
 	}
 }
 
@@ -67,7 +63,6 @@ func NewControllerServer(d *driver) *controllerServer {
 func NewNodeServer(d *driver) *nodeServer {
 	return &nodeServer{
 		DefaultNodeServer: csicommon.NewDefaultNodeServer(d.csiDriver),
-		mux:               sync.Mutex{},
 	}
 }
 
