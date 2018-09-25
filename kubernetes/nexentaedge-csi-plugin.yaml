@@ -38,7 +38,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: 10.3.30.75:5000/nexentaedge-csi-plugin:latest
+          image: nexenta/nexentaedge-csi-plugin:latest
           args :
             - "--v=5"
             - "--nodeid=$(NODE_ID)"

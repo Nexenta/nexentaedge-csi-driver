@@ -39,6 +39,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		log.Fatal("Failed to get NexentaEdge instance")
 		return nil, err
 	}
+
 	// Volume Name
 	volumeName := req.GetName()
 	if len(volumeName) == 0 {

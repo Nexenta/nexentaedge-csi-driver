@@ -225,6 +225,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	// get all services information to find already existing volume by path
 	clusterData, err := nedge.GetClusterData()
 	if err != nil {
+		log.Errorf("Couldn't get ClusterData : %+v", err)
 		return "", err
 	}
 
@@ -243,7 +244,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 		appropriateServiceData, err := clusterData.FindApropriateServiceData()
 
 		if err != nil {
-			log.Infof("Appropriate service selection failed : %+v", err)
+			log.Errorf("Appropriate service selection failed : %+v", err)
 			return "", err
 		}
 
