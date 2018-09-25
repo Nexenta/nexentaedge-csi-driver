@@ -92,7 +92,7 @@ func InitNexentaEdgeProvider(restip string, port int16, username string, passwor
 
 	tr := &http.Transport{
 		Dial: (&net.Dialer{
-			Timeout:  300 * time.Second,
+			Timeout: 300 * time.Second,
 		}).Dial,
 	}
 

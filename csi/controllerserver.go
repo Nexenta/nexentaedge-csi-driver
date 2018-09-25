@@ -15,6 +15,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const (
+	defaultNFSVolumeQuota int64 = 1073741824
+)
+
 type controllerServer struct {
 	*csicommon.DefaultControllerServer
 }
@@ -47,11 +51,12 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		params = make(map[string]string)
 	}
 
-	sz := req.GetCapacityRange().GetRequiredBytes()
-	if sz == 0 {
-		sz = 1073741824
+	// get volume size, 1Gb if not specified
+	requiredBytes := req.GetCapacityRange().GetRequiredBytes()
+	if requiredBytes == 0 {
+		requiredBytes = defaultNFSVolumeQuota
 	}
-	params["size"] = strconv.FormatInt(sz, 10)
+	params["size"] = strconv.FormatInt(requiredBytes, 10)
 
 	volumePath := ""
 	if service, ok := params["service"]; ok {
@@ -67,7 +72,6 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 	volumePath += volumeName
 
-	// Volume Create
 	log.Info("ControllerServer::CreateVolume : ", volumePath)
 	newVolumeID, err := nedge.CreateVolume(volumePath, 0, params)
 	if err != nil {
@@ -78,9 +82,9 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	// CreateVolume response
 	resp := &csi.CreateVolumeResponse{
 		Volume: &csi.Volume{
-			Id: newVolumeID,
-			CapacityBytes: sz,
-			Attributes: req.GetParameters(),
+			Id:            newVolumeID,
+			CapacityBytes: requiredBytes,
+			Attributes:    req.GetParameters(),
 		},
 	}
 

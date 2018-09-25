@@ -27,9 +27,6 @@ type INexentaEdge interface {
 	CheckNfsServiceExists(serviceName string) error
 	IsClusterExists(clusterName string) bool
 	IsTenantExists(clusterName string, tenantName string) bool
-	//IsVolumeExist(volumeID string) bool
-	//GetVolume(volumeID string) (volume *nedgeprovider.NedgeNFSVolume, err error)
-	//GetVolumeID(volumeName string) (volumeID string, err error)
 	GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error)
 	GetClusterConfig() (config NedgeClusterConfig)
 }
@@ -153,7 +150,6 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	log.Infof("Check healtz for %s is OK!", config.Nedgerest)
 
 	NexentaEdgeInstance := &NexentaEdge{
-		Mutex:               &sync.Mutex{},
 		provider:            provider,
 		clusterConfig:       config,
 		isStandAloneCluster: isStandAloneCluster,
