@@ -3,7 +3,6 @@ package csi
 import (
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nexentaedge"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -18,14 +17,7 @@ import (
 
 type nodeServer struct {
 	*csicommon.DefaultNodeServer
-	mux sync.Mutex
 }
-
-/*
-func (ns *nodeServer) NodeGetVolumeStats(ctx context.Context, req *csi.NodeGetVolumeStatsRequest) (*csi.NodeGetVolumeStatsResponse, error) {
-        return nil, status.Error(codes.Unimplemented, "")
-}
-*/
 
 func (ns *nodeServer) NodeGetId(ctx context.Context, req *csi.NodeGetIdRequest) (*csi.NodeGetIdResponse, error) {
 	log.Infof("NodeGetId req[%#v]", req)
@@ -97,10 +89,22 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 		return &csi.NodePublishVolumeResponse{}, nil
 	}
 
-	log.Infof("NodeServer::NodePublishVolume Publishing nfs volume %+v", nfsVolume)
+	fsType := req.GetVolumeCapability().GetMount().GetFsType()
+	readOnly := req.GetReadonly()
+	attrib := req.GetVolumeAttributes()
+	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
+
+	mountOptions := nedge.GetClusterConfig().GetMountOptions()
+	if readOnly {
+		if !contains(mountOptions, "ro") {
+			mountOptions = append(mountOptions, "ro")
+		}
+	}
+
+	log.Infof("target %v\nfstype %v\nreadonly %v\nattributes %v\n mountflags %v\n", targetPath, fsType, readOnly, attrib, mountFlags)
 	//log.Infof("NexentaEdge export %s endpoint is %s", volID.FullObjectPath(), nfsEndpoint)
 
-	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", nedge.GetClusterConfig().NfsMountOptionsArray)
+	err = mounter.Mount(nfsEndpoint, targetPath, "nfs", mountOptions)
 	if err != nil {
 		if os.IsPermission(err) {
 			log.Errorf("NodeServer::NodePublishVolume Failed to mount volume %+v. Error: %v", nfsVolume, err)
@@ -167,4 +171,14 @@ func (d *nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCa
 			},
 		},
 	}, nil
+}
+
+//TODO should be moved to Utils
+func contains(arr []string, tofind string) bool {
+	for _, item := range arr {
+		if item == tofind {
+			return true
+		}
+	}
+	return false
 }

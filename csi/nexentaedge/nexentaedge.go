@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
@@ -13,10 +12,11 @@ import (
 )
 
 const (
-	defaultChunkSize int    = 1048576
-	xorKey           string = "#o$3dfMJd@#4_;sdf789G%$789Slpo(Zv~"
-	defaultUserName  string = "admin"
-	defaultPassword  string = "TQpcVgoSLA=="
+	defaultChunkSize       int    = 1048576
+	xorKey                 string = "#o$3dfMJd@#4_;sdf789G%$789Slpo(Zv~"
+	defaultUserName        string = "admin"
+	defaultPassword        string = "TQpcVgoSLA=="
+	defaultNFSMountOptions string = "vers=3,tcp"
 )
 
 /*INexentaEdge interface to provide base methods */
@@ -28,32 +28,51 @@ type INexentaEdge interface {
 	IsClusterExists(clusterName string) bool
 	IsTenantExists(clusterName string, tenantName string) bool
 	GetClusterDataByVolumeID(volumeID string) (nedgeprovider.VolumeID, ClusterData, error)
-	GetClusterConfig() (config NedgeClusterConfig)
+	GetClusterConfig() (config *NedgeClusterConfig)
 }
 
 type NexentaEdge struct {
-	Mutex               *sync.Mutex
 	provider            nedgeprovider.INexentaEdgeProvider
 	clusterConfig       NedgeClusterConfig
 	isStandAloneCluster bool
 }
 
 type NedgeClusterConfig struct {
-	Name                 string
-	Nedgerest            string
-	Nedgeport            string
-	Username             string
-	Password             string
-	Cluster              string
-	Tenant               string
-	NfsMountOptions      string          `json:"nfsMountOptions"`
-	ForceBucketDeletion  bool            `json:"forceBucketDeletion"`
-	ServiceFilter        string          `json:"serviceFilter"`
-	ServiceFilterMap     map[string]bool `json:"-"`
-	NfsMountOptionsArray []string        `json:"-"`
+	Name                      string
+	Nedgerest                 string
+	Nedgeport                 string
+	Username                  string
+	Password                  string
+	Cluster                   string
+	Tenant                    string
+	NfsMountOptions           string `json:"nfsMountOptions"`
+	ForceBucketDeletion       bool   `json:"forceBucketDeletion"`
+	ServiceFilter             string `json:"serviceFilter"`
+	NfsServiceSelectionPolicy string `json:"nfsServiceSelectionPolicy"`
 }
 
-//var NexentaEdgeInstance INexentaEdge
+/* GetMountOptions */
+func (config *NedgeClusterConfig) GetMountOptions() (options []string) {
+
+	mountOptionsParts := strings.Split(config.NfsMountOptions, ",")
+	for _, option := range mountOptionsParts {
+		options = append(options, strings.TrimSpace(option))
+	}
+	return options
+}
+
+func (config *NedgeClusterConfig) GetServiceFilterMap() (filterMap map[string]bool) {
+
+	if config.ServiceFilter != "" {
+		filterMap = make(map[string]bool)
+		services := strings.Split(config.ServiceFilter, ",")
+		for _, srvName := range services {
+			filterMap[strings.TrimSpace(srvName)] = true
+		}
+	}
+
+	return filterMap
+}
 
 /* Method to XOR input password string */
 func EncryptDecrypt(input string) (output string) {
@@ -68,7 +87,7 @@ func EncryptDecrypt(input string) (output string) {
 func elapsed(what string) func() {
 	start := time.Now()
 	return func() {
-		log.Infof("::Measurement NexentaEdge::%s took %v", what, time.Since(start))
+		log.Debugf("::Measurement NexentaEdge::%s took %v", what, time.Since(start))
 	}
 }
 
@@ -82,10 +101,11 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	config, err = ReadParseConfig()
 	if err != nil {
 		err = fmt.Errorf("failed to read config file %s Error: %s", nedgeConfigFile, err)
-		log.Infof("%+", err)
+		log.Infof("%+v", err)
 		return nil, err
 	}
 
+	/* Apply default values here */
 	if len(config.Username) == 0 {
 		config.Username = defaultUserName
 	}
@@ -94,22 +114,9 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 		config.Username = defaultPassword
 	}
 
-	config.ServiceFilterMap = make(map[string]bool)
-	if config.ServiceFilter != "" {
-		services := strings.Split(config.ServiceFilter, ",")
-		for _, srvName := range services {
-			config.ServiceFilterMap[strings.TrimSpace(srvName)] = true
-		}
-	}
-
-	// NfsMountOptions parsing
-	config.NfsMountOptionsArray = []string{"vers=3", "tcp"}
-	if config.NfsMountOptions != "" {
-		config.NfsMountOptionsArray = []string{}
-		mountOptions := strings.Split(config.NfsMountOptions, ",")
-		for _, option := range mountOptions {
-			config.NfsMountOptionsArray = append(config.NfsMountOptionsArray, strings.TrimSpace(option))
-		}
+	//set default NfsMountOptions values
+	if len(config.NfsMountOptions) == 0 {
+		config.NfsMountOptions = defaultNFSMountOptions
 	}
 
 	// No address information for k8s Nedge cluster
@@ -134,7 +141,7 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	passwordData, err := base64.StdEncoding.DecodeString(config.Password)
 	if err != nil {
 		err = fmt.Errorf("failed to decode password. error %+v", err)
-		log.Info(err)
+		log.Error(err)
 		return nil, err
 	}
 
@@ -144,10 +151,10 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	provider = nedgeprovider.InitNexentaEdgeProvider(config.Nedgerest, clusterPort, config.Username, configPassword)
 	err = provider.CheckHealth()
 	if err != nil {
-		log.Infof("InitNexentaEdge failed during CheckHealth : %+v", err)
+		log.Error("InitNexentaEdge failed during CheckHealth : %+v", err)
 		return nil, err
 	}
-	log.Infof("Check healtz for %s is OK!", config.Nedgerest)
+	log.Debugf("Check healtz for %s is OK!", config.Nedgerest)
 
 	NexentaEdgeInstance := &NexentaEdge{
 		provider:            provider,
@@ -158,8 +165,8 @@ func InitNexentaEdge(invoker string) (nedge INexentaEdge, err error) {
 	return NexentaEdgeInstance, nil
 }
 
-func (nedge *NexentaEdge) GetClusterConfig() (config NedgeClusterConfig) {
-	return nedge.clusterConfig
+func (nedge *NexentaEdge) GetClusterConfig() (config *NedgeClusterConfig) {
+	return &nedge.clusterConfig
 }
 
 func (nedge *NexentaEdge) CheckNfsServiceExists(serviceName string) error {
@@ -241,7 +248,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	if IsNoServiceSpecified(missedPathParts) {
 
 		// find apropriate service to serve
-		appropriateServiceData, err := clusterData.FindApropriateServiceData()
+		appropriateServiceData, err := clusterData.FindApropriateServiceData(nedge.GetClusterConfig().NfsServiceSelectionPolicy)
 
 		if err != nil {
 			log.Errorf("Appropriate service selection failed : %+v", err)
@@ -271,15 +278,15 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	}
 
 	if !nedge.provider.IsBucketExist(volID.Cluster, volID.Tenant, volID.Bucket) {
-		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s doesnt exist. Creating one", volID.Cluster, volID.Tenant, volID.Bucket)
+		log.Debugf("NexentaEdge::CreateVolume Bucket %s/%s/%s doesnt exist. Creating one", volID.Cluster, volID.Tenant, volID.Bucket)
 		err := nedge.provider.CreateBucket(volID.Cluster, volID.Tenant, volID.Bucket, 0, options)
 		if err != nil {
 			log.Error(err)
 			return "", err
 		}
-		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s created", volID.Cluster, volID.Tenant, volID.Bucket)
+		log.Debugf("NexentaEdge::CreateVolume Bucket %s/%s/%s created", volID.Cluster, volID.Tenant, volID.Bucket)
 	} else {
-		log.Infof("NexentaEdge::CreateVolume Bucket %s/%s/%s already exists", volID.Cluster, volID.Tenant, volID.Bucket)
+		log.Debugf("NexentaEdge::CreateVolume Bucket %s/%s/%s already exists", volID.Cluster, volID.Tenant, volID.Bucket)
 	}
 
 	// setup service configuration if asked
@@ -303,7 +310,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 /*DeleteVolume remotely deletes bucket on nexentaedge service*/
 func (nedge *NexentaEdge) DeleteVolume(volumeID string) (err error) {
 	defer elapsed("DeleteVolume")()
-	log.Info("NexentaEdgeProvider::DeleteVolume  VolumeID: ", volumeID)
+	log.Debugf("NexentaEdgeProvider::DeleteVolume  VolumeID: %s", volumeID)
 
 	var clusterData ClusterData
 	configMap := nedge.PrepareConfigMap()
@@ -398,8 +405,9 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 	for _, service := range services {
 
 		//if ServiceFilter not empty, skip every service not presented in list(map)
-		if len(nedge.clusterConfig.ServiceFilter) > 0 {
-			if _, ok := nedge.clusterConfig.ServiceFilterMap[service.Name]; !ok {
+		serviceFilterMap := nedge.clusterConfig.GetServiceFilterMap()
+		if len(serviceFilterMap) > 0 {
+			if _, ok := serviceFilterMap[service.Name]; !ok {
 				continue
 			}
 		}
@@ -414,7 +422,7 @@ func (nedge *NexentaEdge) ListServices(serviceName ...string) (resultServices []
 /*ListVolumes list all available volumes */
 func (nedge *NexentaEdge) ListVolumes() (volumes []nedgeprovider.NedgeNFSVolume, err error) {
 	defer elapsed("NexentaEdge::ListVolumes")
-	log.Info("NexentaEdgeProvider ListVolumes: ")
+	log.Debug("NexentaEdgeProvider::ListVolumes")
 
 	//already filtered services with serviceFilter, service type e.t.c.
 	services, err := nedge.ListServices()
@@ -469,7 +477,7 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 
 	services, err = nedge.ListServices()
 	if err != nil {
-		log.Panic("Failed to retrieve service list", err)
+		log.Warningf("No services in service list. %v", err)
 		return clusterData, err
 	}
 
@@ -495,7 +503,7 @@ func (nedge *NexentaEdge) GetClusterData(serviceName ...string) (ClusterData, er
 			nfsServiceData := NfsServiceData{Service: service, NfsVolumes: nfsVolumes}
 			clusterData.nfsServicesData = append(clusterData.nfsServicesData, nfsServiceData)
 		} else {
-			log.Errorf("Failed to retrieve nfs export list for %s service. Error: %+v", service.Name, err)
+			log.Warningf("No nfs exports found for %s service. Error: %+v", service.Name, err)
 		}
 	}
 
