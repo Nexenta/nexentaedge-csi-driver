@@ -3,9 +3,11 @@ package nexentaedge
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/Nexenta/nexentaedge-csi-driver/csi/nedgeprovider"
+	log "github.com/sirupsen/logrus"
 )
 
 type NfsServiceData struct {
@@ -65,6 +67,7 @@ func randomServiceSelector(clusterData *ClusterData) (*NfsServiceData, error) {
 	if len(clusterData.nfsServicesData) > 0 {
 		rand.Seed(time.Now().UnixNano())
 		randomIndex := rand.Intn(len(clusterData.nfsServicesData) - 1)
+		log.Infof("randomServiceSelector selected index is %d", randomIndex)
 		return &clusterData.nfsServicesData[randomIndex], nil
 	}
 
@@ -78,10 +81,12 @@ func processServiceSelectionPolicy(serviceSelector nfsServiceSelectorFunc, clust
 /*FindApropriateService find service with minimal export count*/
 func (clusterData *ClusterData) FindApropriateServiceData(nfsBalancingPolicy string) (*NfsServiceData, error) {
 	var serviceSelector nfsServiceSelectorFunc
-	switch nfsBalancingPolicy {
-	case "minimalServiceSelector":
+	switch strings.ToLower(nfsBalancingPolicy) {
+	// minServicePolicy
+	case "minexportspolicy":
 		serviceSelector = minimalExportsServiceSelector
-	case "randomServiceSelector":
+	// randomServicePolicy
+	case "randomservicepolicy":
 		serviceSelector = randomServiceSelector
 	default:
 		serviceSelector = minimalExportsServiceSelector

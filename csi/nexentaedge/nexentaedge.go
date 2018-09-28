@@ -38,17 +38,17 @@ type NexentaEdge struct {
 }
 
 type NedgeClusterConfig struct {
-	Name                      string
-	Nedgerest                 string
-	Nedgeport                 string
-	Username                  string
-	Password                  string
-	Cluster                   string
-	Tenant                    string
-	NfsMountOptions           string `json:"nfsMountOptions"`
-	ForceBucketDeletion       bool   `json:"forceBucketDeletion"`
-	ServiceFilter             string `json:"serviceFilter"`
-	NfsServiceSelectionPolicy string `json:"nfsServiceSelectionPolicy"`
+	Name                  string
+	Nedgerest             string
+	Nedgeport             string
+	Username              string
+	Password              string
+	Cluster               string
+	Tenant                string
+	NfsMountOptions       string `json:"nfsMountOptions"`
+	ForceBucketDeletion   bool   `json:"forceBucketDeletion"`
+	ServiceFilter         string `json:"serviceFilter"`
+	ServiceBalancerPolicy string `json:"serviceBalancerPolicy"`
 }
 
 /* GetMountOptions */
@@ -248,7 +248,7 @@ func (nedge *NexentaEdge) CreateVolume(name string, size int, options map[string
 	if IsNoServiceSpecified(missedPathParts) {
 
 		// find apropriate service to serve
-		appropriateServiceData, err := clusterData.FindApropriateServiceData(nedge.GetClusterConfig().NfsServiceSelectionPolicy)
+		appropriateServiceData, err := clusterData.FindApropriateServiceData(nedge.GetClusterConfig().ServiceBalancerPolicy)
 
 		if err != nil {
 			log.Errorf("Appropriate service selection failed : %+v", err)
