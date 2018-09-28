@@ -67,7 +67,6 @@ func randomServiceSelector(clusterData *ClusterData) (*NfsServiceData, error) {
 	if len(clusterData.nfsServicesData) > 0 {
 		rand.Seed(time.Now().UnixNano())
 		randomIndex := rand.Intn(len(clusterData.nfsServicesData) - 1)
-		log.Infof("randomServiceSelector selected index is %d", randomIndex)
 		return &clusterData.nfsServicesData[randomIndex], nil
 	}
 
@@ -84,11 +83,14 @@ func (clusterData *ClusterData) FindApropriateServiceData(nfsBalancingPolicy str
 	switch strings.ToLower(nfsBalancingPolicy) {
 	// minServicePolicy
 	case "minexportspolicy":
+		log.Debugf("BalancerPolicy::MinimalExportsServiceSelector selected")
 		serviceSelector = minimalExportsServiceSelector
 	// randomServicePolicy
 	case "randomservicepolicy":
+		log.Debugf("BalancerPolicy::RandomServiceSelector selected")
 		serviceSelector = randomServiceSelector
 	default:
+		log.Debugf("BalancerPolicy::MinimalExportsServiceSelector selected")
 		serviceSelector = minimalExportsServiceSelector
 	}
 
