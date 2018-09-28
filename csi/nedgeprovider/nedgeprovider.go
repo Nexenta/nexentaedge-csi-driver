@@ -620,11 +620,14 @@ func (nedge *NexentaEdgeProvider) Request(method, restpath string, data map[stri
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Basic "+nedge.auth)
 	resp, err := nedge.httpClient.Do(req)
+	if resp != nil {
+		defer resp.Body.Close()
+	}
+
 	if err != nil {
-		log.Panic("Error while handling request ", err)
+		log.Errorf("Error while handling request %v", err)
 		return nil, err
 	}
-	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
